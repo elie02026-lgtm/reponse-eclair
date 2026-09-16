@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Secrets — jamais dans un dépôt public. .env.example (sans secret) reste suivi.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
