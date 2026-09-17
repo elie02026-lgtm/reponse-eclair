@@ -1,4 +1,4 @@
-// Miroir exact des colonnes de la table `demandes` (voir supabase/migrations/0001_init.sql).
+// Miroir exact des colonnes des tables (voir supabase/migrations/0001_init.sql).
 // Tout ce qui est nullable en base est nullable ici : TypeScript nous forcera
 // à traiter les cas vides au lieu de planter à l'affichage.
 
@@ -16,6 +16,17 @@ export const LIBELLE_STATUT: Record<Statut, string> = {
 }
 
 export const STATUTS = Object.keys(LIBELLE_STATUT) as Statut[]
+
+export type Artisan = {
+  id: string
+  entreprise: string
+  metier: string
+  code_postal: string
+  zone_minutes: number | null
+  message_sms: string
+  numero_twilio: string | null
+  cree_le: string | null
+}
 
 export type Demande = {
   id: number

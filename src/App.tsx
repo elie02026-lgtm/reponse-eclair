@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import Connexion from './Connexion'
-import ARappeler from './ARappeler'
+import Application from './Application'
 
-// Le portier de l'application : session ou pas session.
+// Le portier : session ou pas session.
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [chargement, setChargement] = useState(true)
@@ -33,5 +33,5 @@ export default function App() {
     )
   }
 
-  return session ? <ARappeler session={session} /> : <Connexion />
+  return session ? <Application session={session} /> : <Connexion />
 }
