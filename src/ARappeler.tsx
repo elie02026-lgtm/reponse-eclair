@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
-import type { Demande } from './types'
+import { LIBELLE_STATUT, STATUTS } from './types'
+import type { Demande, Statut } from './types'
 
 // Depuis combien de temps la demande attend, en français lisible.
 function tempsEcoule(iso: string): string {
@@ -29,14 +30,15 @@ export default function ARappeler({ session }: { session: Session }) {
   const [demandes, setDemandes] = useState<Demande[]>([])
   const [erreur, setErreur] = useState<string | null>(null)
   const [chargement, setChargement] = useState(true)
+  // id de la demande en cours d'écriture : sert à bloquer un double appui.
+  const [enCours, setEnCours] = useState<number | null>(null)
 
   useEffect(() => {
     // LA RÈGLE DE TRI, QUI EST LE PRODUIT : gravité d'abord, panier ensuite.
     // Jamais la date — l'ordre chronologique est ce que font les trois concurrents.
     //
-    // Le tri est exécuté en base, pas en JavaScript : l'index
-    // (artisan_id, statut, gravite desc, panier desc) créé dans la migration
-    // est fait exactement pour cette requête.
+    // Le tri est exécuté en base : l'index (artisan_id, statut, gravite desc,
+    // panier desc) créé dans la migration est fait exactement pour cette requête.
     //
     // Note : on ne filtre PAS sur artisan_id. Ce n'est pas un oubli.
     // La politique RLS s'en charge en base : même en demandant tout,
@@ -53,6 +55,44 @@ export default function ARappeler({ session }: { session: Session }) {
         setChargement(false)
       })
   }, [])
+
+  async function changerStatut(demande: Demande, nouveau: Statut) {
+    setEnCours(demande.id)
+    setErreur(null)
+
+    const { data, error } = await supabase
+      .from('demandes')
+      .update({
+        statut: nouveau,
+        // La demande sort du circuit : on horodate. Si elle y revient, on efface.
+        traite_le: nouveau === 'a_rappeler' ? null : new Date().toISOString(),
+      })
+      .eq('id', demande.id)
+      .select()
+
+    setEnCours(null)
+
+    if (error) {
+      setErreur(`Modification refusée : ${error.message}`)
+      return
+    }
+
+    // PIÈGE DE LA RLS, À CONNAÎTRE :
+    // modifier une ligne qui ne vous appartient pas ne déclenche AUCUNE erreur.
+    // La politique filtre la ligne avant l'écriture, donc Postgres modifie
+    // zéro ligne et répond « tout va bien ». Le seul moyen de s'en apercevoir
+    // est le `.select()` ci-dessus : on compte ce qui revient réellement.
+    // Sans ce test, l'écran effacerait la carte alors que rien n'a été écrit.
+    if (!data || data.length === 0) {
+      setErreur(
+        'Aucune ligne modifiée. La demande ne vous appartient pas, ou elle a été supprimée.',
+      )
+      return
+    }
+
+    // Cet écran ne montre que les demandes à rappeler : celle-ci en sort.
+    setDemandes((actuelles) => actuelles.filter((x) => x.id !== demande.id))
+  }
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -77,10 +117,10 @@ export default function ARappeler({ session }: { session: Session }) {
         {chargement && <p className="text-slate-500">Chargement…</p>}
 
         {erreur && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>
+          <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>
         )}
 
-        {!chargement && !erreur && demandes.length === 0 && (
+        {!chargement && demandes.length === 0 && (
           <p className="rounded-lg bg-white px-4 py-6 text-center text-slate-500 ring-1 ring-slate-200">
             Aucune demande à rappeler.
           </p>
@@ -88,7 +128,12 @@ export default function ARappeler({ session }: { session: Session }) {
 
         <ul className="space-y-3">
           {demandes.map((d) => (
-            <li key={d.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <li
+              key={d.id}
+              className={`rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 ${
+                enCours === d.id ? 'opacity-50' : ''
+              }`}
+            >
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-semibold text-slate-900">{d.prenom ?? 'Sans nom'}</span>
                 <span className="text-sm text-slate-500">{tempsEcoule(d.recue_le)}</span>
@@ -118,7 +163,7 @@ export default function ARappeler({ session }: { session: Session }) {
                 {d.telephone && (
                   <a
                     href={`tel:${d.telephone}`}
-                    className="flex-1 rounded-lg bg-slate-900 px-3 py-2 text-center text-sm font-medium text-white hover:bg-slate-800"
+                    className="flex-1 rounded-lg bg-slate-900 px-3 py-3 text-center text-sm font-medium text-white hover:bg-slate-800"
                   >
                     Appeler
                   </a>
@@ -128,12 +173,28 @@ export default function ARappeler({ session }: { session: Session }) {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.lieu)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100"
+                    className="flex-1 rounded-lg px-3 py-3 text-center text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100"
                   >
                     Itinéraire
                   </a>
                 )}
               </div>
+
+              <label className="mt-2 block">
+                <span className="sr-only">Statut de la demande</span>
+                <select
+                  value={d.statut}
+                  disabled={enCours === d.id}
+                  onChange={(e) => changerStatut(d, e.target.value as Statut)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-700 disabled:opacity-50"
+                >
+                  {STATUTS.map((s) => (
+                    <option key={s} value={s}>
+                      {LIBELLE_STATUT[s]}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </li>
           ))}
         </ul>

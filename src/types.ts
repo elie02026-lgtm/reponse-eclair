@@ -4,6 +4,19 @@
 
 export type Statut = 'a_rappeler' | 'rappele' | 'devis_envoye' | 'signe' | 'perdu'
 
+// Les libellés affichés à l'artisan. La clé est la valeur RÉELLEMENT stockée
+// en base, imposée par la contrainte `check` de la migration.
+// Si les deux divergent un jour, Postgres refusera l'écriture — c'est voulu.
+export const LIBELLE_STATUT: Record<Statut, string> = {
+  a_rappeler: 'À rappeler',
+  rappele: 'Rappelé',
+  devis_envoye: 'Devis envoyé',
+  signe: 'Signé',
+  perdu: 'Perdu',
+}
+
+export const STATUTS = Object.keys(LIBELLE_STATUT) as Statut[]
+
 export type Demande = {
   id: number
   artisan_id: string
