@@ -1,0 +1,21 @@
+{
+  // Nom du Worker sur Cloudflare. Doit correspondre au projet déjà créé.
+  "name": "reponse-eclair",
+
+  // Fige le comportement de la plateforme à cette date : Cloudflare ne
+  // changera pas le fonctionnement sous nos pieds. On la met à jour
+  // volontairement, jamais par surprise.
+  "compatibility_date": "2026-09-17",
+
+  // Site statique : aucun code serveur, on publie le dossier que Vite fabrique.
+  "assets": {
+    // Produit par `npm run build`. D'où l'obligation de régler
+    // "Build command: npm run build" dans Cloudflare — sinon ce dossier n'existe pas.
+    "directory": "./dist",
+
+    // Application à page unique : toute URL inconnue renvoie index.html,
+    // et c'est React qui décide quoi afficher. Inutile aujourd'hui
+    // (une seule page), indispensable dès qu'on aura plusieurs écrans.
+    "not_found_handling": "single-page-application"
+  }
+}
