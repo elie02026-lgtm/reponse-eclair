@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import ARappeler from './ARappeler'
 import Traitees from './Traitees'
 import Reglages from './Reglages'
+import Onboarding from './Onboarding'
+import type { Artisan } from './types'
 
 type Ecran = 'a_rappeler' | 'traitees' | 'reglages'
 
@@ -19,20 +21,60 @@ export default function Application({ session }: { session: Session }) {
   // par écran, donc le bouton Retour du navigateur ne change pas d'onglet.
   const [ecran, setEcran] = useState<Ecran>('a_rappeler')
 
+  // Un compte peut exister sans fiche artisan : c'est le cas juste après
+  // l'inscription, puisque la confirmation d'e-mail empêche de créer la
+  // fiche au moment de l'inscription elle-même.
+  const [artisan, setArtisan] = useState<Artisan | null>(null)
+  const [chargement, setChargement] = useState(true)
+  const [erreur, setErreur] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Pas de filtre sur l'id : la RLS ne renvoie que la fiche du compte connecté.
+    supabase
+      .from('artisans')
+      .select('*')
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) setErreur(error.message)
+        else setArtisan((data as Artisan | null) ?? null)
+        setChargement(false)
+      })
+  }, [])
+
+  if (chargement) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50">
+        <p className="text-slate-500">Chargement…</p>
+      </main>
+    )
+  }
+
+  if (erreur) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>
+      </main>
+    )
+  }
+
+  // Compte créé mais fiche absente : on la demande avant de montrer quoi que ce soit.
+  if (!artisan) {
+    return <Onboarding session={session} onCree={setArtisan} />
+  }
+
   return (
     // pb-20 réserve la place de la barre du bas, qui est en position fixe.
     <div className="min-h-screen bg-slate-50 pb-20">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-        <h1 className="text-lg font-bold tracking-tight text-slate-900">Réponse Éclair</h1>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="hidden text-slate-500 sm:inline">{session.user.email}</span>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="rounded-lg px-3 py-1 text-slate-600 ring-1 ring-slate-300 hover:bg-slate-100"
-          >
-            Quitter
-          </button>
-        </div>
+        <h1 className="truncate text-lg font-bold tracking-tight text-slate-900">
+          {artisan.entreprise}
+        </h1>
+        <button
+          onClick={() => supabase.auth.signOut()}
+          className="shrink-0 rounded-lg px-3 py-1 text-sm text-slate-600 ring-1 ring-slate-300 hover:bg-slate-100"
+        >
+          Quitter
+        </button>
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-6">
