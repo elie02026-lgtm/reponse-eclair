@@ -13,8 +13,26 @@ const MESSAGES: Record<string, string> = {
     'Le mot de passe doit faire au moins 6 caractères.',
 }
 
+// Certains messages contiennent une valeur variable — l'adresse saisie, par
+// exemple — et ne peuvent donc pas être des clés fixes.
+const MOTIFS: [RegExp, string][] = [
+  [
+    /Email address .* is invalid/i,
+    "Cette adresse e-mail n'est pas acceptée. Utilisez une adresse qui existe vraiment : les domaines sans boîte aux lettres sont refusés.",
+  ],
+]
+
+// Si un message inconnu passe, il s'affiche en anglais. C'est un défaut connu,
+// et on le corrige au fur et à mesure qu'on rencontre les erreurs POUR DE VRAI
+// — pas en devinant à l'avance la liste des messages de Supabase.
 function enFrancais(message: string): string {
-  return MESSAGES[message] ?? message
+  const exact = MESSAGES[message]
+  if (exact) return exact
+
+  for (const [motif, traduction] of MOTIFS) {
+    if (motif.test(message)) return traduction
+  }
+  return message
 }
 
 export default function Connexion() {
