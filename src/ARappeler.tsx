@@ -52,8 +52,18 @@ export default function ARappeler() {
   // le prospect n'a pas donné suite. Chez Rappli, LockLead et Repondeo, ces
   // gens disparaissent de l'écran. Ici on les sort du lot et on les nomme :
   // le système a fait ce qu'il pouvait, à l'artisan de décrocher lui-même.
-  const sansReponse = demandes.filter((d) => d.relance_sms_le !== null)
-  const nouvelles = demandes.filter((d) => d.relance_sms_le === null)
+  // LE PIÈGE DU TRI : en SQL, `order by gravite desc` place les NULL EN TÊTE.
+  // Vérifié en base : (3, 1, null, 2) trié en desc donne (null, 3, 2, 1).
+  // Donc une demande que l'IA n'a pas su classer passait DEVANT une fuite d'eau
+  // notée 3 — silencieusement, sans que rien ne le signale.
+  //
+  // On ne la fait pas redescendre pour autant : la cacher au fond serait la
+  // perdre. On la sort du classement et on dit pourquoi. La machine n'a pas
+  // su juger ; elle le déclare au lieu de faire semblant.
+  const nonClassees = demandes.filter((d) => d.gravite === null)
+  const classees = demandes.filter((d) => d.gravite !== null)
+  const sansReponse = classees.filter((d) => d.relance_sms_le !== null)
+  const nouvelles = classees.filter((d) => d.relance_sms_le === null)
 
   const carte = (d: Demande) => (
     <CarteDemande
@@ -76,6 +86,21 @@ export default function ARappeler() {
         <p className="rounded-lg bg-white px-4 py-6 text-center text-slate-500 ring-1 ring-slate-200">
           Aucune demande à rappeler.
         </p>
+      )}
+
+      {nonClassees.length > 0 && (
+        <>
+          <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 ring-1 ring-red-200">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-red-900">
+              Non classées — à juger vous-même ({nonClassees.length})
+            </h2>
+            <p className="mt-1 text-sm text-red-800">
+              L’estimation automatique n’a pas abouti sur ces demandes. Elles sont mises
+              à part plutôt que rangées au hasard : lisez-les d’abord.
+            </p>
+          </div>
+          <ul className="mb-8 space-y-3">{nonClassees.map(carte)}</ul>
+        </>
       )}
 
       {nouvelles.length > 0 && (

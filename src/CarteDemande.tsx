@@ -1,4 +1,5 @@
 import { LIBELLE_STATUT, STATUTS } from './types'
+import { lireTelephone } from './lib/telephone'
 import type { Demande, Statut } from './types'
 
 // Depuis combien de temps la demande attend, en français lisible.
@@ -45,6 +46,22 @@ export default function CarteDemande({
   // la base, et ce sont eux qui montrent qu'on agit en un doigt.
   demo?: boolean
 }) {
+  const tel = lireTelephone(d.telephone)
+
+  // CE QUI MANQUE, DIT À VOIX HAUTE.
+  // Avant, un champ vide faisait simplement disparaître un bouton. L'artisan
+  // voyait une carte amputée sans savoir si le logiciel était cassé ou si le
+  // client n'avait rien écrit. Une panne muette est pire qu'une panne.
+  const manques: string[] = []
+  if (tel.etat === 'absent') manques.push('Le formulaire est arrivé sans numéro de téléphone.')
+  if (tel.etat === 'invalide')
+    manques.push(`Numéro inutilisable, reçu tel quel : « ${tel.brut} ».`)
+  if (!d.lieu) manques.push('Aucune adresse : pas d’itinéraire possible.')
+
+  // Si on ne peut pas appeler mais qu'on a un e-mail, on propose la seule
+  // action qui reste. Ne rien proposer serait abandonner le prospect.
+  const repliEmail = tel.etat !== 'ok' && d.email
+
   return (
     <li
       className={`rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 ${
@@ -57,7 +74,12 @@ export default function CarteDemande({
       </div>
 
       {d.lieu && <p className="text-sm text-slate-500">{d.lieu}</p>}
-      {d.besoin && <p className="mt-2 text-slate-700">{d.besoin}</p>}
+
+      {d.besoin ? (
+        <p className="mt-2 text-slate-700">{d.besoin}</p>
+      ) : (
+        <p className="mt-2 italic text-slate-400">Le client n’a rien écrit.</p>
+      )}
 
       {/* L'écart entre ces deux encadrés EST la démonstration du produit :
           ce que la machine a estimé, face à ce que le client avait coché. */}
@@ -77,12 +99,21 @@ export default function CarteDemande({
       </div>
 
       <div className="mt-3 flex gap-2">
-        {d.telephone && (
+        {tel.etat === 'ok' && (
           <a
-            href={`tel:${d.telephone}`}
+            href={`tel:${tel.appel}`}
             className="flex-1 rounded-lg bg-slate-900 px-3 py-3 text-center text-sm font-medium text-white hover:bg-slate-800"
           >
             Appeler
+            <span className="block text-xs font-normal opacity-80">{tel.affichage}</span>
+          </a>
+        )}
+        {repliEmail && (
+          <a
+            href={`mailto:${d.email}`}
+            className="flex-1 rounded-lg bg-slate-900 px-3 py-3 text-center text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Écrire un e-mail
           </a>
         )}
         {d.lieu && (
@@ -96,6 +127,14 @@ export default function CarteDemande({
           </a>
         )}
       </div>
+
+      {manques.length > 0 && (
+        <ul className="mt-2 space-y-1 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-amber-200">
+          {manques.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ul>
+      )}
 
       {!demo && onChangerStatut && (
         <label className="mt-2 block">
