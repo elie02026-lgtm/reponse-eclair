@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from './lib/supabase'
+import { exporterDemandes } from './lib/export'
 import type { Artisan } from './types'
 
 // Caractères qui font basculer un SMS en Unicode et divisent la limite
@@ -22,6 +23,20 @@ export default function Reglages() {
   const [succes, setSucces] = useState(false)
   const [chargement, setChargement] = useState(true)
   const [envoi, setEnvoi] = useState(false)
+  const [exportEnCours, setExportEnCours] = useState(false)
+  const [exportMessage, setExportMessage] = useState<string | null>(null)
+
+  async function exporter() {
+    setExportEnCours(true)
+    setExportMessage(null)
+
+    const { lignes, erreur } = await exporterDemandes()
+    setExportEnCours(false)
+
+    if (erreur) setExportMessage(erreur)
+    else if (lignes === 0) setExportMessage('Vous n’avez encore aucune demande à exporter.')
+    else setExportMessage(`${lignes} demande${lignes! > 1 ? 's' : ''} téléchargée${lignes! > 1 ? 's' : ''}.`)
+  }
 
   useEffect(() => {
     // Pas de filtre sur l'id : la RLS ne renvoie que la fiche de l'artisan connecté.
@@ -197,6 +212,25 @@ export default function Reglages() {
       >
         {envoi ? 'Enregistrement…' : 'Enregistrer'}
       </button>
+
+      {/* Vos données. `type="button"` est indispensable : sans lui, le bouton
+          soumettrait le formulaire des réglages au lieu d'exporter. */}
+      <div className="space-y-2 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="font-medium text-slate-700">Vos données</div>
+        <p className="text-sm text-slate-500">
+          Toutes vos demandes, dans un fichier que vous pouvez ouvrir dans un tableur.
+          Elles vous appartiennent.
+        </p>
+        <button
+          type="button"
+          onClick={exporter}
+          disabled={exportEnCours}
+          className="w-full rounded-lg px-4 py-3 font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100 disabled:opacity-50"
+        >
+          {exportEnCours ? 'Préparation…' : 'Télécharger mes demandes (CSV)'}
+        </button>
+        {exportMessage && <p className="text-sm text-slate-600">{exportMessage}</p>}
+      </div>
     </form>
   )
 }
