@@ -32,12 +32,18 @@ const SENS_GRAVITE: Record<number, string> = {
 
 export default function CarteDemande({
   demande: d,
-  occupee,
+  occupee = false,
   onChangerStatut,
+  demo = false,
 }: {
   demande: Demande
-  occupee: boolean
-  onChangerStatut: (demande: Demande, nouveau: Statut) => void
+  occupee?: boolean
+  onChangerStatut?: (demande: Demande, nouveau: Statut) => void
+  // `demo` : la carte est montrée à un visiteur, pas à l'artisan propriétaire.
+  // Elle masque le menu de statut, qui n'écrirait nulle part de toute façon.
+  // Les liens Appeler et Itinéraire, eux, restent actifs : ils ne touchent pas
+  // la base, et ce sont eux qui montrent qu'on agit en un doigt.
+  demo?: boolean
 }) {
   return (
     <li
@@ -91,21 +97,23 @@ export default function CarteDemande({
         )}
       </div>
 
-      <label className="mt-2 block">
-        <span className="sr-only">Statut de la demande</span>
-        <select
-          value={d.statut}
-          disabled={occupee}
-          onChange={(e) => onChangerStatut(d, e.target.value as Statut)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-700 disabled:opacity-50"
-        >
-          {STATUTS.map((s) => (
-            <option key={s} value={s}>
-              {LIBELLE_STATUT[s]}
-            </option>
-          ))}
-        </select>
-      </label>
+      {!demo && onChangerStatut && (
+        <label className="mt-2 block">
+          <span className="sr-only">Statut de la demande</span>
+          <select
+            value={d.statut}
+            disabled={occupee}
+            onChange={(e) => onChangerStatut(d, e.target.value as Statut)}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-700 disabled:opacity-50"
+          >
+            {STATUTS.map((s) => (
+              <option key={s} value={s}>
+                {LIBELLE_STATUT[s]}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {d.traite_le && (
         <p className="mt-2 text-xs text-slate-400">
