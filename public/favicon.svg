@@ -1,10 +1,9 @@
-<!-- L'éclair de Réponse Éclair, sur le violet #7c3aed choisi par Elie.
-     Les trois PNG de l'écran d'accueil utilisent le même violet : onglet
-     et icône d'application montrent la même chose.
-     Ce violet n'est PAS celui de l'en-tête de l'application (#0f172a) —
-     c'est un écart assumé, pas un oubli.
-     Remplace le logo de Vite, livré par le gabarit de départ. -->
+<!-- L'éclair de Réponse Éclair, sur le bleu nuit #0f172a — exactement
+     la couleur de l'en-tête de l'application. Les trois PNG de l'écran
+     d'accueil utilisent le même : onglet, icône et en-tête s'accordent.
+     Le violet a été essayé puis écarté par Elie, vu sur téléphone.
+     Refait avec outils/icones.mjs. Remplace le logo de Vite. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" rx="13" fill="#7c3aed"/>
+  <rect width="64" height="64" rx="13" fill="#0f172a"/>
   <path d="M36.5 6 L18 35.5 L29.5 35.5 L27.5 58 L46 28.5 L34.5 28.5 Z" fill="#ffffff"/>
 </svg>

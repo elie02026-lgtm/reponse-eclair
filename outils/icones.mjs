@@ -2,7 +2,7 @@
 import { deflateSync } from 'node:zlib'
 import { writeFileSync } from 'node:fs'
 
-const FOND = [0x7c, 0x3a, 0xed]   // #7c3aed
+const FOND = [0x0f, 0x17, 0x2a]   // #0f172a — la couleur de l'en-tête
 const TRAIT = [0xff, 0xff, 0xff]
 
 // L'éclair, dans un repère de 64, tel qu'il est dans favicon.svg.
