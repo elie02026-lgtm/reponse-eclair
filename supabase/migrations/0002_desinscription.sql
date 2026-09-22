@@ -97,3 +97,26 @@ create or replace view demandes_a_relancer as
 -- La relance tourne avec la clé de service, qui ignore la RLS.
 -- On ne donne la lecture à personne d'autre.
 revoke all on demandes_a_relancer from anon, authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 5. Ce que l'audit de sécurité Supabase signale ici, et pourquoi on garde.
+-- ─────────────────────────────────────────────────────────────────────────
+-- Le linter lève trois alertes sur ce fichier. Les trois sont voulues.
+-- C'est écrit ici pour que personne — moi compris dans trois semaines — ne
+-- les « corrige » en croyant à un oubli.
+--
+-- * rls_enabled_no_policy sur `oppositions`
+--   RLS activée + zéro politique = tout est refusé aux rôles clients.
+--   C'est la formulation la plus stricte qui existe, pas un oubli.
+--   Vérifié : lecture anonyme -> [], écriture anonyme -> 42501.
+--
+-- * anon/authenticated peuvent exécuter `se_desinscrire`, en security definer
+--   C'est l'objet même d'un lien de désinscription : il doit fonctionner
+--   sans compte. La fonction est étroite — elle n'accepte qu'un uuid, ne
+--   rend que l'e-mail correspondant, et n'écrit que dans `oppositions`.
+--   Un jeton se devine dans un espace de 2^122 : la force brute n'est pas
+--   une menace ici.
+--
+-- Le quatrième point de l'audit, lui, est à traiter et ne se règle pas en
+-- SQL : « Leaked Password Protection Disabled ». À activer dans les
+-- réglages Auth du tableau de bord Supabase.
