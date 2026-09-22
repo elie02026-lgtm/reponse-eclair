@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { changerStatut } from './lib/demandes'
 import CarteDemande from './CarteDemande'
+import Sante from './Sante'
 import type { Demande, Statut } from './types'
 
 export default function ARappeler() {
@@ -76,6 +77,10 @@ export default function ARappeler() {
 
   return (
     <>
+      {/* Les pannes d'abord, avant les demandes : si la chaîne est cassée,
+          ce qu'on voit à l'écran ne veut plus dire grand-chose. */}
+      <Sante />
+
       {chargement && <p className="text-slate-500">Chargement…</p>}
 
       {erreur && (
