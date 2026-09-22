@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import Demo from './Demo.tsx'
 import Desinscription from './Desinscription.tsx'
+import Offre from './Offre.tsx'
 
 // UNE PORTE, PAS UN ARBRE DE ROUTES.
 //
@@ -30,8 +31,17 @@ import Desinscription from './Desinscription.tsx'
 // jour de l'étape 8, on jettera les deux.
 // On choisit l'élément, on ne déclare PAS de composant ici : un composant
 // défini dans ce fichier casserait le rafraîchissement à chaud de Vite.
+// Trois pages publiques : la vitrine, la démonstration, la désinscription.
+// `/` reste l'application — le manifeste déclare `start_url: "/"`, et
+// l'icône posée sur l'écran d'accueil d'Elie pointe dessus. Déplacer
+// l'application casserait la case E2 déjà acquise. La vitrine prendra la
+// racine le jour du vrai domaine, pas avant.
 const chemin = window.location.pathname
-const page =
-  chemin === '/demo' ? <Demo /> : chemin === '/desinscription' ? <Desinscription /> : <App />
+const PUBLIQUES: Record<string, React.ReactElement> = {
+  '/offre': <Offre />,
+  '/demo': <Demo />,
+  '/desinscription': <Desinscription />,
+}
+const page = PUBLIQUES[chemin] ?? <App />
 
 createRoot(document.getElementById('root')!).render(<StrictMode>{page}</StrictMode>)
