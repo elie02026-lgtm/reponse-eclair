@@ -46,4 +46,7 @@ export type Demande = {
   statut: Statut
   relance_sms_le: string | null
   traite_le: string | null
+  // Montant RÉELLEMENT facturé, saisi par l'artisan. Ne jamais le
+  // confondre avec `panier`, qui est l'estimation de l'IA.
+  montant_signe: number | null
 }

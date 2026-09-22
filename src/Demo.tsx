@@ -37,6 +37,7 @@ const DEMANDES: Demande[] = [
     statut: 'a_rappeler',
     relance_sms_le: null,
     traite_le: null,
+    montant_signe: null,
   },
   {
     id: 2,
@@ -56,6 +57,7 @@ const DEMANDES: Demande[] = [
     statut: 'a_rappeler',
     relance_sms_le: null,
     traite_le: null,
+    montant_signe: null,
   },
   {
     id: 3,
@@ -75,6 +77,7 @@ const DEMANDES: Demande[] = [
     statut: 'a_rappeler',
     relance_sms_le: null,
     traite_le: null,
+    montant_signe: null,
   },
   {
     id: 4,
@@ -94,6 +97,7 @@ const DEMANDES: Demande[] = [
     statut: 'a_rappeler',
     relance_sms_le: null,
     traite_le: null,
+    montant_signe: null,
   },
 ]
 

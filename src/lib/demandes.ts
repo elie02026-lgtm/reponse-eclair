@@ -33,3 +33,34 @@ export async function changerStatut(
 
   return { demande: data[0] as Demande }
 }
+
+// Écrire le montant RÉELLEMENT facturé.
+// Séparée de `changerStatut` à dessein : passer une demande en « signé » et
+// dire combien elle a rapporté sont deux gestes distincts, faits à deux
+// moments différents. Les mêler obligerait l'artisan à connaître son
+// montant au moment où il coche, c'est-à-dire souvent avant de l'avoir
+// facturé — et il coocherait n'importe quoi pour passer à la suite.
+export async function enregistrerMontant(
+  demande: Demande,
+  montant: number,
+): Promise<{ demande?: Demande; erreur?: string }> {
+  if (!Number.isInteger(montant) || montant < 0) {
+    return { erreur: 'Le montant doit être un nombre entier d’euros, sans centimes.' }
+  }
+
+  const { data, error } = await supabase
+    .from('demandes')
+    .update({ montant_signe: montant })
+    .eq('id', demande.id)
+    .select()
+
+  if (error) return { erreur: `Enregistrement refusé : ${error.message}` }
+
+  // Même piège de la RLS que ci-dessus : zéro ligne modifiée n'est pas une
+  // erreur pour Postgres, seulement pour nous.
+  if (!data || data.length === 0) {
+    return { erreur: 'Aucune ligne modifiée. La demande ne vous appartient pas.' }
+  }
+
+  return { demande: data[0] as Demande }
+}

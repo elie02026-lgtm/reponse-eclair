@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { LIBELLE_STATUT, STATUTS } from './types'
 import { lireTelephone } from './lib/telephone'
 import type { Demande, Statut } from './types'
@@ -35,11 +36,15 @@ export default function CarteDemande({
   demande: d,
   occupee = false,
   onChangerStatut,
+  onEnregistrerMontant,
   demo = false,
 }: {
   demande: Demande
   occupee?: boolean
   onChangerStatut?: (demande: Demande, nouveau: Statut) => void
+  // Saisie du montant réellement facturé. Absent sur l'écran « À rappeler » :
+  // une demande qu'on n'a pas encore rappelée n'a rien rapporté.
+  onEnregistrerMontant?: (demande: Demande, montant: number) => void
   // `demo` : la carte est montrée à un visiteur, pas à l'artisan propriétaire.
   // Elle masque le menu de statut, qui n'écrirait nulle part de toute façon.
   // Les liens Appeler et Itinéraire, eux, restent actifs : ils ne touchent pas
@@ -47,6 +52,11 @@ export default function CarteDemande({
   demo?: boolean
 }) {
   const tel = lireTelephone(d.telephone)
+
+  // Pré-remplissage : le montant déjà saisi, sinon l'estimation de l'IA
+  // comme point de départ. L'artisan corrige ; c'est sa correction qui
+  // compte, jamais l'estimation.
+  const [montant, setMontant] = useState(String(d.montant_signe ?? d.panier ?? ''))
 
   // CE QUI MANQUE, DIT À VOIX HAUTE.
   // Avant, un champ vide faisait simplement disparaître un bouton. L'artisan
@@ -152,6 +162,42 @@ export default function CarteDemande({
             ))}
           </select>
         </label>
+      )}
+
+      {/* LE CHIFFRE QU'ON MONTRERA À UN ARTISAN AU BOUT D'UN MOIS.
+          Il n'est réel que si c'est lui qui l'écrit. */}
+      {!demo && onEnregistrerMontant && d.statut === 'signe' && (
+        <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+          <label className="block text-xs font-medium text-slate-700">
+            Montant réellement facturé
+          </label>
+          <div className="mt-1 flex gap-2">
+            <input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={montant}
+              onChange={(e) => setMontant(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              disabled={occupee || montant === ''}
+              onClick={() => onEnregistrerMontant(d, Math.round(Number(montant)))}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {d.montant_signe === null ? 'Enregistrer' : 'Modifier'}
+            </button>
+          </div>
+          {d.montant_signe === null && (
+            <p className="mt-1 text-xs text-slate-500">
+              {d.panier === null
+                ? 'Sans ce montant, ce chantier ne compte pas dans votre total.'
+                : `Pré-rempli avec l'estimation (${d.panier} €). Tant que vous ne validez pas, ce chantier ne compte pas dans votre total.`}
+            </p>
+          )}
+        </div>
       )}
 
       {d.traite_le && (
