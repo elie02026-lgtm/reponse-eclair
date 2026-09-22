@@ -2,20 +2,12 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from './lib/supabase'
 import { exporterDemandes } from './lib/export'
+import { analyserSms } from './lib/sms'
 import type { Artisan } from './types'
 
-// Caractères qui font basculer un SMS en Unicode et divisent la limite
-// par plus de deux (160 -> 70). Règle métier, pas une préférence de style.
-// é, è, à passent en GSM-7 ; ceux-ci non.
-const CARACTERES_COUTEUX = /[êâîôûëïÿœç]/g
-
-function analyserSms(texte: string) {
-  const fautifs = [...new Set(texte.match(CARACTERES_COUTEUX) ?? [])]
-  const unicode = fautifs.length > 0
-  const parSegment = unicode ? 70 : 160
-  const segments = texte.length === 0 ? 0 : Math.ceil(texte.length / parSegment)
-  return { fautifs, unicode, parSegment, segments }
-}
+// Le calcul du coût d'un SMS vit dans lib/sms.ts : il est pur, donc testé.
+// Il y était faux ici pendant des semaines — « » et ’ doublaient la facture
+// sans que rien ne le dise, et {LIEN} coûtait deux caractères invisibles.
 
 export default function Reglages() {
   const [artisan, setArtisan] = useState<Artisan | null>(null)
@@ -169,14 +161,24 @@ export default function Reglages() {
             className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
           />
           <span className="text-xs text-slate-500">
-            {artisan.message_sms.length} caractères — {sms.segments} SMS (
-            {sms.parSegment} max par SMS)
+            {sms.unites} caractères facturés — {sms.segments} SMS ({sms.parSegment} max
+            par SMS)
           </span>
+
+          {/* Sans {LIEN}, le message invite à décrire son besoin « ici »
+              sans donner de « ici ». C'est arrivé sur un vrai compte. */}
+          {sms.lienManquant && (
+            <span className="mt-1 block rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+              Il manque <strong>{'{LIEN}'}</strong>. Sans lui, le client reçoit un message qui
+              lui demande de décrire son besoin, et rien à ouvrir pour le faire.
+            </span>
+          )}
           {sms.unicode && (
             <span className="mt-1 block rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Les caractères {sms.fautifs.join(' ')} font passer le message en Unicode : la
               limite tombe de 160 à 70 caractères par SMS, et chaque SMS supplémentaire est
-              facturé. Remplacez-les (é, è, à ne posent pas ce problème).
+              facturé. Remplacez-les — é, è, à ne posent pas ce problème, mais les
+              guillemets « » et l’apostrophe courbe ’ si.
             </span>
           )}
         </label>
