@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import Demo from './Demo.tsx'
+import Desinscription from './Desinscription.tsx'
 
 // UNE PORTE, PAS UN ARBRE DE ROUTES.
 //
@@ -22,8 +23,15 @@ import Demo from './Demo.tsx'
 // Le jour où il y aura une page de vente, des mentions légales et une
 // politique de confidentialité — l'étape 8 — ces quatre lignes seront
 // remplacées par un vrai routeur. Elles ne coûtent rien à jeter.
-const estDemo = window.location.pathname === '/demo'
+//
+// DEUXIÈME PAGE PUBLIQUE : /desinscription, atteinte depuis le lien en bas
+// des relances. Elle doit rester accessible sans compte — c'est tout
+// l'objet d'un lien de désinscription. Le `if` devient un `switch` ; le
+// jour de l'étape 8, on jettera les deux.
+// On choisit l'élément, on ne déclare PAS de composant ici : un composant
+// défini dans ce fichier casserait le rafraîchissement à chaud de Vite.
+const chemin = window.location.pathname
+const page =
+  chemin === '/demo' ? <Demo /> : chemin === '/desinscription' ? <Desinscription /> : <App />
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>{estDemo ? <Demo /> : <App />}</StrictMode>,
-)
+createRoot(document.getElementById('root')!).render(<StrictMode>{page}</StrictMode>)
