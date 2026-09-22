@@ -16,6 +16,15 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icone-180.png" />
     <meta name="theme-color" content="#0f172a" />
+
+    <!-- Le manifeste déclare display: standalone, et iOS 16.4+ le respecte.
+         Les iPhone plus anciens l'ignorent : sans ces deux lignes, l'application
+         ajoutée à l'écran d'accueil s'ouvre AVEC la barre d'adresse Safari —
+         c'est-à-dire pas comme une application. `mobile-web-app-capable` est le
+         nom standard ; le préfixé `apple-` reste nécessaire pour les vieux iOS. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   </head>
   <body>
     <div id="root"></div>
