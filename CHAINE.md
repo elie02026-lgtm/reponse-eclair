@@ -23,9 +23,20 @@ que Tally appelle quand quelqu'un envoie le formulaire.
 | 5 | `http:ActionSendData` | **POST /demandes** — l'enregistrement, avant tout traitement |
 | 9 | `gemini-ai` | classe la gravité → `gravite\|motif\|panier` — `onerror: Resume` |
 | 8 | `gemini-ai` | rédige l'e-mail de réponse au client — `onerror: Resume` |
-| 3 | `google-email` | e-mail au client — **filtre : l'adresse doit contenir `@`** |
+| 14 | `builtin:BasicRouter` | sépare ce qui va à l'artisan de ce qui va au client |
+
+**Route 1 — l'artisan.** Aucun filtre à l'entrée : elle part toujours.
+
+| # | module | ce qu'il fait |
+|---|---|---|
 | 4 | `google-email` | **alerte à l'artisan** |
 | 10 | `http:ActionSendData` | PATCH gravité/motif/panier — filtre : le résultat doit contenir `\|` |
+
+**Route 2 — le client.**
+
+| # | module | ce qu'il fait |
+|---|---|---|
+| 3 | `google-email` | e-mail au client — filtre : l'adresse doit contenir `@` |
 
 `dlq: true`, `maxErrors: 10`. Une exécution complète coûte **7 opérations**.
 
@@ -47,30 +58,26 @@ l'e-mail de Make ne dit pas qu'un client n'a pas été enregistré, et les
 journaux d'exécution expirent au bout de **7 jours** — passé ce délai, il
 n'y a plus rien à rejouer.
 
-### ⚠️ DÉFAUT CONNU : un e-mail client invalide supprime l'alerte de l'artisan
+### Le routeur, et pourquoi il fallait en passer par là
 
-Les modules 3, 4 et 10 sont **en série**. Le filtre du module 3 ne saute pas
-le module 3 : il arrête toute la suite de la branche. Donc si l'adresse du
-client ne contient pas `@` — champ vide, faute de frappe, formulaire qui
-change de forme :
+**Un filtre n'saute pas son module : il arrête toute la suite de la
+branche.** Jusqu'au 23 septembre, les modules 3, 4 et 10 étaient en série
+dans cet ordre. Une adresse client sans `@` faisait donc tomber le filtre du
+module 3 — et avec lui l'alerte de l'artisan ET l'écriture de la gravité.
 
-- le module 4 ne part pas → **l'artisan ne reçoit aucune alerte** ;
-- le module 10 ne part pas → **la gravité n'est jamais écrite**, la demande
-  reste dans « Non classées ».
+Le réordonner en série ne réglait rien : quel que soit l'ordre, le filtre du
+premier module aurait emporté les suivants. Deux filtres indépendants
+exigent deux routes. D'où le routeur.
 
-La demande EST en base (module 5 a tourné), donc rien n'est perdu — mais
-l'artisan ne l'apprend qu'en ouvrant l'application de lui-même.
+**Mesuré avant et après**, même charge utile, adresse volontairement privée
+d'arobase :
 
-**Mesuré le 23 septembre à 17 h 23 et 17 h 25** : deux exécutions avec une
-adresse sans `@` coûtent **4 opérations** au lieu de 7. Webhook, insertion,
-et les deux appels Gemini. Les trois derniers modules ne tournent pas. La
-boîte d'Elie ne contient aucune alerte pour ces deux passages.
-
-**Le correctif** est un réordonnancement : l'alerte à l'artisan (module 4)
-doit passer AVANT l'e-mail au client (module 3), ou sur une route séparée.
-Il n'a pas été fait : il réécrit le blueprint, et c'est le geste qui a coupé
-la capture le 22 septembre. À faire avec Elie devant l'écran, onglet Make
-fermé.
+| | avant | après |
+|---|---|---|
+| opérations | 4 | 6 |
+| alerte à l'artisan | **aucune** | reçue à 17 h 37 min 57 s |
+| gravité écrite | **non** | `3 / fuite sous evier / 180 €` |
+| e-mail au client | non (correct) | non (correct) |
 
 ---
 
@@ -105,6 +112,10 @@ C'est l'ébauche d'A1/A2, créée le 10 septembre et jamais remplie.
 `fields[1]`, pas `fields[0]`. Découvert le 23 septembre en envoyant un
 témoin au webhook : tout était décalé d'un cran, le téléphone dans le champ
 e-mail et la commune dans le besoin.
+
+**Un rejeu ne vide pas la file des exécutions incomplètes.** Après le rejeu
+du témoin C1, `dlqCount` valait toujours 1. La file se purge depuis
+l'interface de Make, pas depuis l'API.
 
 **Enregistrer depuis un onglet ouvert depuis le matin pousse le blueprint
 périmé.** Le 22 septembre, ça a effacé deux routes `onerror`, quatre

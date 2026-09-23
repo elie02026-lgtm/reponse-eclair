@@ -1,0 +1,558 @@
+{
+  "name": "Integration Webhooks",
+  "flow": [
+    {
+      "id": 2,
+      "mapper": {},
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "metadata": {
+        "restore": {
+          "parameters": {
+            "hook": {
+              "data": {
+                "editable": "true"
+              },
+              "label": "Tally lead"
+            }
+          }
+        },
+        "designer": {
+          "x": 0,
+          "y": 0
+        },
+        "parameters": [
+          {
+            "name": "hook",
+            "type": "hook:gateway-webhook",
+            "label": "Webhook",
+            "required": true
+          },
+          {
+            "name": "maxResults",
+            "type": "number",
+            "label": "Maximum number of results"
+          }
+        ]
+      },
+      "parameters": {
+        "hook": 3273225,
+        "maxResults": 1
+      }
+    },
+    {
+      "id": 5,
+      "mapper": {
+        "ca": "",
+        "qs": [],
+        "url": "https://ysmuqebqqlempkacqfhl.supabase.co/rest/v1/demandes",
+        "gzip": true,
+        "method": "post",
+        "headers": [
+          {
+            "name": "apikey",
+            "value": "CLE_DE_SERVICE_A_REMETTRE_AVANT_RESTAURATION"
+          },
+          {
+            "name": "Authorization",
+            "value": "  bearer CLE_DE_SERVICE_A_REMETTRE_AVANT_RESTAURATION"
+          },
+          {
+            "name": "Prefer",
+            "value": "return=representation"
+          },
+          {
+            "name": "Accept",
+            "value": "application/vnd.pgrst.object+json"
+          }
+        ],
+        "timeout": "",
+        "useMtls": false,
+        "authPass": "",
+        "authUser": "",
+        "bodyType": "x_www_form_urlencoded",
+        "formFields": [
+          {
+            "key": "artisan_id",
+            "value": "deb16d63-b66f-4bcc-b2f7-775693114af2"
+          },
+          {
+            "key": "prenom",
+            "value": "{{2.data.fields[1].value}}"
+          },
+          {
+            "key": "email",
+            "value": "{{2.data.fields[3].value}}"
+          },
+          {
+            "key": "telephone",
+            "value": "{{2.data.fields[4].value}}"
+          },
+          {
+            "key": "lieu",
+            "value": "{{2.data.fields[6].value}}"
+          },
+          {
+            "key": "besoin",
+            "value": "{{2.data.fields[7].value}}"
+          },
+          {
+            "key": "urgence_dite",
+            "value": "{{join(map(2.data.fields[5].options; \"text\"; \"id\"; join(2.data.fields[5].value; \",\")); \", \")}}"
+          }
+        ],
+        "serializeUrl": false,
+        "shareCookies": false,
+        "parseResponse": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "followAllRedirects": false,
+        "rejectUnauthorized": true
+      },
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "restore": {
+          "expect": {
+            "qs": {
+              "mode": "chose"
+            },
+            "method": {
+              "mode": "chose",
+              "label": "POST"
+            },
+            "headers": {
+              "mode": "chose",
+              "items": [
+                null,
+                null,
+                null,
+                null
+              ]
+            },
+            "bodyType": {
+              "label": "Application/x-www-form-urlencoded"
+            },
+            "formFields": {
+              "mode": "chose",
+              "items": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+              ]
+            }
+          }
+        },
+        "designer": {
+          "x": 300,
+          "y": 0
+        },
+        "parameters": [
+          {
+            "name": "handleErrors",
+            "type": "boolean",
+            "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+            "required": true
+          },
+          {
+            "name": "useNewZLibDeCompress",
+            "type": "hidden"
+          }
+        ]
+      },
+      "parameters": {
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      }
+    },
+    {
+      "id": 9,
+      "filter": null,
+      "mapper": {
+        "model": "gemini-2.5-flash",
+        "textPrompt": "Tu classes une demande reçue par un artisan du bâtiment, métier : plombier-chauffagiste.\n\nCe que le client a écrit : {{2.data.fields[7].value}}\nCe que le client a coché : {{join(map(2.data.fields[5].options; \"text\"; \"id\"; join(2.data.fields[5].value; \",\")); \", \")}}\nDate du jour : {{formatDate(now; \"D MMMM YYYY\")}}\n\nRéponds par UNE SEULE LIGNE, exactement au format :\ngravite|motif|panier\n\ngravite vaut 3 si la description indique un dégât en cours ou un danger : fuite qui coule, dégât des eaux, odeur de gaz, plus aucun chauffage en période froide, panne électrique totale.\ngravite vaut 2 si c'est une panne gênante sans danger : chauffe-eau, WC bouché, un radiateur froid, robinet qui goutte.\ngravite vaut 1 si c'est un projet ou un devis sans urgence : rénovation, installation neuve, remplacement esthétique.\n\nIGNORE ce que le client a coché. Il coche presque toujours urgent. Juge uniquement sur ce qu'il décrit.\n\nmotif : deux à quatre mots en minuscules, sans accent.\npanier : un nombre entier en euros, montant typique facturé pour ce type d'intervention, sans symbole ni espace.\n\nN'écris rien d'autre. Aucune explication, aucun retour à la ligne, aucune ponctuation finale.\nExemple de réponse valide : 3|fuite sous evier|180"
+      },
+      "module": "gemini-ai:simpleTextPrompt",
+      "onerror": [
+        {
+          "id": 12,
+          "mapper": {},
+          "module": "builtin:Resume",
+          "version": 1,
+          "metadata": {
+            "designer": {
+              "x": 600,
+              "y": 300
+            }
+          },
+          "parameters": {}
+        }
+      ],
+      "version": 1,
+      "metadata": {
+        "restore": {
+          "expect": {
+            "model": {
+              "label": "Gemini 2.5 Flash"
+            }
+          }
+        },
+        "designer": {
+          "x": 600,
+          "y": 0
+        }
+      },
+      "parameters": {}
+    },
+    {
+      "id": 8,
+      "filter": null,
+      "mapper": {
+        "model": "gemini-2.5-flash",
+        "textPrompt": "Tu es l'assistant d'un artisan du bâtiment en France. Un prospect vient de remplir une demande de devis. Rédige UNIQUEMENT le texte d'un email de réponse, chaleureux et vouvoyé, 4 à 5 phrases maximum, qui : le salue par son prénom, reprend explicitement le problème qu'il a décrit dès la première phrase, et l'invite à choisir directement le créneau qui l'arrange via ce lien : https://cal.com/elie-gywz5w/rdv . Ajoute une seule phrase précisant qu'en cas d'urgence il peut appeler directement au 07 67 67 82 73. Écris comme un artisan qui répond vite entre deux chantiers : phrases courtes, mots simples, aucun jargon commercial. Emploie toujours « je », jamais « nous ». N'écris jamais « nos services », « vos attentes » ni « n'hésitez pas ». N'écris ni objet, ni signature, ni prix.\n\nPrénom du prospect : {{2.data.fields[1].value}}\nCe qu'il demande : {{2.data.fields[7].value}}\nUrgence : {{join(map(2.data.fields[5].options; \"text\"; \"id\"; join(2.data.fields[5].value; \",\")); \", \")}}\nLieu : {{2.data.fields[6].value}}"
+      },
+      "module": "gemini-ai:simpleTextPrompt",
+      "onerror": [
+        {
+          "id": 13,
+          "mapper": {},
+          "module": "builtin:Resume",
+          "version": 1,
+          "metadata": {
+            "designer": {
+              "x": 900,
+              "y": 300
+            }
+          },
+          "parameters": {}
+        }
+      ],
+      "version": 1,
+      "metadata": {
+        "restore": {
+          "expect": {
+            "model": {
+              "label": "Gemini 2.5 Flash"
+            }
+          }
+        },
+        "designer": {
+          "x": 900,
+          "y": 0
+        }
+      },
+      "parameters": {}
+    },
+    {
+      "id": 14,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "metadata": {
+        "designer": {
+          "x": 1200,
+          "y": 0
+        }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 4,
+              "mapper": {
+                "to": [
+                  "elie02026@gmail.com"
+                ],
+                "content": "<strong>Nouvelle demande — rappelle vite.</strong><br><br>\r\n🎯 <strong>{{ifempty(trim(get(split(9.result; \"|\"); 2)); \"classification indisponible — juge toi-même\")}}</strong> · gravité {{ifempty(trim(get(split(9.result; \"|\"); 1)); \"?\")}}/3 · ~{{ifempty(trim(get(split(9.result; \"|\"); 3)); \"?\")}} €<br><br>\r\n👤 {{2.data.fields[1].value}}<br>\r\n📞 <a href=\"tel:{{2.data.fields[4].value}}\"><strong>{{2.data.fields[4].value}}</strong></a><br>\r\n📍 <a href=\"https://www.google.com/maps/search/{{encodeURL(2.data.fields[6].value)}}\">{{2.data.fields[6].value}}</a><br>\r\n✉️ <a href=\"mailto:{{2.data.fields[3].value}}\">{{2.data.fields[3].value}}</a><br><br>\r\n⏱️ Ce qu'il a coché : {{join(map(2.data.fields[5].options; \"text\"; \"id\"; join(2.data.fields[5].value; \",\")); \", \")}}<br>\r\n📋 {{2.data.fields[7].value}}",
+                "subject": "🔔 Nouvelle demande de devis à rappeler",
+                "bodyType": "rawHtml"
+              },
+              "module": "google-email:sendAnEmail",
+              "version": 4,
+              "metadata": {
+                "restore": {
+                  "expect": {
+                    "cc": {
+                      "mode": "chose"
+                    },
+                    "to": {
+                      "mode": "chose",
+                      "items": [
+                        null
+                      ]
+                    },
+                    "bcc": {
+                      "mode": "chose"
+                    },
+                    "from": {
+                      "mode": "chose"
+                    },
+                    "bodyType": {
+                      "label": "Raw HTML"
+                    },
+                    "attachments": {
+                      "mode": "chose"
+                    },
+                    "emailHeaders": {
+                      "mode": "chose"
+                    }
+                  },
+                  "parameters": {
+                    "__IMTCONN__": {
+                      "data": {
+                        "scoped": "true",
+                        "connection": "google-email"
+                      },
+                      "label": "My Gmail connection (elie02026@gmail.com)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 1500,
+                  "y": 0
+                },
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:google-email",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "__IMTCONN__": 8414877
+              }
+            },
+            {
+              "id": 10,
+              "filter": {
+                "name": "Classification exploitable",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{9.result}}",
+                      "b": "|",
+                      "o": "text:contain"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "ca": "",
+                "qs": [
+                  {
+                    "name": "id",
+                    "value": "eq.{{5.data.id}}"
+                  }
+                ],
+                "url": "https://ysmuqebqqlempkacqfhl.supabase.co/rest/v1/demandes",
+                "gzip": true,
+                "method": "patch",
+                "headers": [
+                  {
+                    "name": "apikey",
+                    "value": "CLE_DE_SERVICE_A_REMETTRE_AVANT_RESTAURATION"
+                  },
+                  {
+                    "name": "Authorization",
+                    "value": "Bearer CLE_DE_SERVICE_A_REMETTRE_AVANT_RESTAURATION"
+                  },
+                  {
+                    "name": "Prefer",
+                    "value": "return=representation"
+                  }
+                ],
+                "timeout": "",
+                "useMtls": false,
+                "authPass": "",
+                "authUser": "",
+                "bodyType": "x_www_form_urlencoded",
+                "formFields": [
+                  {
+                    "key": "gravite",
+                    "value": "{{trim(get(split(9.result; \"|\"); 1))}}"
+                  },
+                  {
+                    "key": "motif",
+                    "value": "{{trim(get(split(9.result; \"|\"); 2))}}"
+                  },
+                  {
+                    "key": "panier",
+                    "value": "{{trim(get(split(9.result; \"|\"); 3))}}"
+                  }
+                ],
+                "serializeUrl": false,
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+              },
+              "module": "http:ActionSendData",
+              "version": 3,
+              "metadata": {
+                "restore": {
+                  "expect": {
+                    "qs": {
+                      "mode": "chose",
+                      "items": [
+                        null
+                      ]
+                    },
+                    "method": {
+                      "mode": "chose",
+                      "label": "PATCH"
+                    },
+                    "headers": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null,
+                        null
+                      ]
+                    },
+                    "bodyType": {
+                      "label": "Application/x-www-form-urlencoded"
+                    },
+                    "formFields": {
+                      "mode": "chose",
+                      "items": [
+                        null,
+                        null,
+                        null
+                      ]
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 1800,
+                  "y": 0
+                },
+                "parameters": [
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden"
+                  }
+                ]
+              },
+              "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 3,
+              "filter": {
+                "name": "Email présent",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{2.data.fields[3].value}}",
+                      "b": "@",
+                      "o": "text:contain"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "to": "{{2.data.fields[3].value}}",
+                "content": "{{ifempty(8.result; \"Bonjour, j'ai bien reçu votre demande. Je la regarde et je vous rappelle.<br><br>Si c'est urgent, appelez-moi directement au 07 67 67 82 73.\")}}",
+                "subject": "Votre demande de devis a bien été reçue",
+                "bodyType": "rawHtml"
+              },
+              "module": "google-email:sendAnEmail",
+              "version": 4,
+              "metadata": {
+                "restore": {
+                  "expect": {
+                    "cc": {
+                      "mode": "chose"
+                    },
+                    "to": {
+                      "mode": "edit"
+                    },
+                    "bcc": {
+                      "mode": "chose"
+                    },
+                    "from": {
+                      "mode": "chose",
+                      "label": "Empty"
+                    },
+                    "bodyType": {
+                      "label": "Raw HTML"
+                    },
+                    "attachments": {
+                      "mode": "chose"
+                    },
+                    "emailHeaders": {
+                      "mode": "chose"
+                    }
+                  },
+                  "parameters": {
+                    "__IMTCONN__": {
+                      "data": {
+                        "scoped": "true",
+                        "connection": "google-email"
+                      },
+                      "label": "My Gmail connection (elie02026@gmail.com)"
+                    }
+                  }
+                },
+                "designer": {
+                  "x": 1500,
+                  "y": 300
+                },
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:google-email",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              },
+              "parameters": {
+                "__IMTCONN__": 8414877
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": true,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 10,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}
