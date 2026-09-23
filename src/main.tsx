@@ -6,6 +6,8 @@ import Demo from './Demo.tsx'
 import Desinscription from './Desinscription.tsx'
 import Offre from './Offre.tsx'
 import Confidentialite from './Confidentialite.tsx'
+import Cgv from './Cgv.tsx'
+import SousTraitance from './SousTraitance.tsx'
 
 // UNE PORTE, PAS UN ARBRE DE ROUTES.
 //
@@ -32,7 +34,11 @@ import Confidentialite from './Confidentialite.tsx'
 // jour de l'étape 8, on jettera les deux.
 // On choisit l'élément, on ne déclare PAS de composant ici : un composant
 // défini dans ce fichier casserait le rafraîchissement à chaud de Vite.
-// Quatre pages publiques : vitrine, démonstration, désinscription, mentions.
+// Six pages publiques : vitrine, démonstration, désinscription, et les
+// trois pages juridiques. Le cahier (case D2) les veut « accessibles » :
+// elles sont liées depuis le pied de la page de vente et depuis l'une
+// l'autre. Une page qu'on ne peut atteindre qu'en tapant son adresse ne
+// l'est pas — c'était le cas de /confidentialite jusqu'ici.
 // `/` reste l'application — le manifeste déclare `start_url: "/"`, et
 // l'icône posée sur l'écran d'accueil d'Elie pointe dessus. Déplacer
 // l'application casserait la case E2 déjà acquise. La vitrine prendra la
@@ -43,6 +49,8 @@ const PUBLIQUES: Record<string, React.ReactElement> = {
   '/demo': <Demo />,
   '/desinscription': <Desinscription />,
   '/confidentialite': <Confidentialite />,
+  '/cgv': <Cgv />,
+  '/sous-traitance': <SousTraitance />,
 }
 const page = PUBLIQUES[chemin] ?? <App />
 

@@ -250,6 +250,20 @@ export default function Reglages() {
 
       {/* Hors du <form> : à l'intérieur, son bouton enverrait les réglages. */}
       <Resiliation entreprise={entrepriseEnregistree} />
+
+      {/* Case D2 : « accessibles ». Un artisan qui a souscrit doit pouvoir
+          relire ce qu'il a accepté sans ressortir sur le site public. */}
+      <p className="flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs text-slate-500">
+        <a href="/cgv" className="underline hover:text-slate-900">
+          Conditions de vente
+        </a>
+        <a href="/confidentialite" className="underline hover:text-slate-900">
+          Mentions légales et données
+        </a>
+        <a href="/sous-traitance" className="underline hover:text-slate-900">
+          Sous-traitance RGPD
+        </a>
+      </p>
     </div>
   )
 }

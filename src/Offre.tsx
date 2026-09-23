@@ -1,20 +1,9 @@
+import { MENTION_TVA, REGIME_TVA } from './lib/editeur'
+import { PRIX } from './lib/prix'
+
 // Page de vente publique (cahier, étape 8 : « Domaine, mentions légales,
 // page de vente », et case E3 : « Une page de vente avec un prix affiché »).
 //
-// ─────────────────────────────────────────────────────────────────────────
-// LE PRIX. C'est la seule décision de ce fichier, et elle appartient à Elie.
-// ─────────────────────────────────────────────────────────────────────────
-// Proposition argumentée, à corriger d'une ligne :
-//   • Rappli   : 14,90 € HT/mois — capture l'appel manqué, ne trie rien.
-//   • LockLead : 49 €/mois.
-//   • Marché des relances SMS pour artisans : 15 à 80 €/mois.
-//   • Télésecrétariat humain : 80 à 300 €/mois.
-// 29 € se place au-dessus de Rappli — le tri par gravité réelle est un
-// travail que Rappli ne fait pas — et bien en dessous de LockLead, parce
-// qu'un produit sans client ni domaine ne se vend pas au prix d'un produit
-// installé. Un seul chantier de gravité 3 rapporte entre 180 et 550 € :
-// l'abonnement se rembourse en un rappel par an.
-const PRIX_HT = 29
 
 // Où l'on parle à un humain. Le cahier a tranché : un artisan préfère un
 // humain à une IA, et l'appel sert à ça.
@@ -88,8 +77,21 @@ export default function Offre() {
         <Bloc titre="Le prix">
           <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <div className="text-3xl font-bold text-slate-900">
-              {PRIX_HT} € HT<span className="text-lg font-normal text-slate-500"> / mois</span>
+              {PRIX} €
+              <span className="text-lg font-normal text-slate-500">
+                {REGIME_TVA === 'assujetti' ? ' HT' : ''} / mois
+              </span>
             </div>
+            {/* NE PAS ÉCRIRE « HT » EN FRANCHISE EN BASE. « 29 € HT » fait
+                calculer 34,80 € à un artisan habitué à ajouter la TVA, et on
+                perd l'appel sur un prix qu'on ne facture pas. Seuils vérifiés
+                sur service-public : 37 500 € de recettes en prestations de
+                services. Voir lib/editeur.ts. */}
+            {REGIME_TVA === 'franchise' && (
+              <p className="mt-1 text-sm text-slate-500">
+                {MENTION_TVA} — c’est le prix que vous payez, il n’y a rien à ajouter.
+              </p>
+            )}
             <p className="mt-2 text-sm text-slate-600">
               Sans engagement. Tout est compris : le numéro, les SMS, le formulaire, les
               alertes, les relances, l’écran.
@@ -125,8 +127,22 @@ export default function Offre() {
           </a>
         </Bloc>
 
-        <footer className="mt-12 border-t border-slate-200 pt-6 text-sm text-slate-500">
-          Réponse Éclair — demandes classées par gravité réelle, pas par ordre d’arrivée.
+        {/* Case D2 : « mentions légales et CGV ACCESSIBLES ». /confidentialite
+            existait depuis hier et rien ne pointait dessus : on ne pouvait y
+            arriver qu'en tapant l'adresse. Ce n'est pas accessible. */}
+        <footer className="mt-12 space-y-3 border-t border-slate-200 pt-6 text-sm text-slate-500">
+          <p>Réponse Éclair — demandes classées par gravité réelle, pas par ordre d’arrivée.</p>
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            <a href="/cgv" className="underline hover:text-slate-900">
+              Conditions de vente
+            </a>
+            <a href="/confidentialite" className="underline hover:text-slate-900">
+              Mentions légales et données
+            </a>
+            <a href="/sous-traitance" className="underline hover:text-slate-900">
+              Sous-traitance RGPD
+            </a>
+          </p>
         </footer>
       </div>
     </main>
