@@ -29,6 +29,24 @@ que Tally appelle quand quelqu'un envoie le formulaire.
 
 `dlq: true`, `maxErrors: 10`. Une exécution complète coûte **7 opérations**.
 
+### Ce qui se passe quand l'insertion échoue
+
+Mesuré le 23 septembre 2026 à 17 h 24, panne injectée en base :
+
+1. l'exécution s'arrête au module 5 et prend le **statut 2** — incomplète,
+   charge utile conservée (avec `dlq: false`, c'était le statut 3 : rien de
+   gardé, et c'est ce qui invalidait le test du 22 septembre) ;
+2. **Make envoie un e-mail à Elie dans les trois secondes** —
+   « ⚠️ Encountered warnings in scenario Integration Webhooks »,
+   reçu à 17 h 24 min 24 s ;
+3. `scenarios_replay` rejoue l'exécution et la demande arrive complète en
+   base.
+
+Le lead n'est donc pas perdu. Deux réserves, qui ne sont pas techniques :
+l'e-mail de Make ne dit pas qu'un client n'a pas été enregistré, et les
+journaux d'exécution expirent au bout de **7 jours** — passé ce délai, il
+n'y a plus rien à rejouer.
+
 ### ⚠️ DÉFAUT CONNU : un e-mail client invalide supprime l'alerte de l'artisan
 
 Les modules 3, 4 et 10 sont **en série**. Le filtre du module 3 ne saute pas
