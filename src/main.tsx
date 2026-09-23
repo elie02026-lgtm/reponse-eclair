@@ -7,6 +7,7 @@ import Desinscription from './Desinscription.tsx'
 import Offre from './Offre.tsx'
 import Confidentialite from './Confidentialite.tsx'
 import Cgv from './Cgv.tsx'
+import Formulaire from './Formulaire.tsx'
 import SousTraitance from './SousTraitance.tsx'
 
 // UNE PORTE, PAS UN ARBRE DE ROUTES.
@@ -34,7 +35,7 @@ import SousTraitance from './SousTraitance.tsx'
 // jour de l'étape 8, on jettera les deux.
 // On choisit l'élément, on ne déclare PAS de composant ici : un composant
 // défini dans ce fichier casserait le rafraîchissement à chaud de Vite.
-// Six pages publiques : vitrine, démonstration, désinscription, et les
+// Sept pages publiques : vitrine, démonstration, désinscription, et les
 // trois pages juridiques. Le cahier (case D2) les veut « accessibles » :
 // elles sont liées depuis le pied de la page de vente et depuis l'une
 // l'autre. Une page qu'on ne peut atteindre qu'en tapant son adresse ne
@@ -51,6 +52,9 @@ const PUBLIQUES: Record<string, React.ReactElement> = {
   '/confidentialite': <Confidentialite />,
   '/cgv': <Cgv />,
   '/sous-traitance': <SousTraitance />,
+  // La page que verra le client de l'artisan, et la seule. Elle remplace
+  // le Tally : le lien du SMS doit porter le code de l'artisan appelé.
+  '/formulaire': <Formulaire />,
 }
 const page = PUBLIQUES[chemin] ?? <App />
 

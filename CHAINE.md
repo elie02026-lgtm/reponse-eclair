@@ -5,7 +5,7 @@ rien ne les versionne. Ce fichier est le seul endroit où leur forme est
 écrite. Il est relevé à la main, daté, et il ment dès que quelqu'un touche
 un scénario sans le mettre à jour.
 
-**Dernier relevé : 23 septembre 2026**, par lecture des blueprints via l'API.
+**Dernier relevé : 23 septembre 2026, 18 h**, par lecture des blueprints via l'API.
 
 Organisation 8118598, équipe 1989251, zone `eu1`. Forfait **Free** :
 1 000 opérations/mois, journaux d'exécution conservés **7 jours**.
@@ -15,11 +15,18 @@ Organisation 8118598, équipe 1989251, zone `eu1`. Forfait **Free** :
 ## 1. « Integration Webhooks » — la capture (id 6318986)
 
 Déclenchée par le webhook `hook.eu1.make.com/zyfgvw5dfi3x1lfgg6k0ttu52qosst5u`,
-que Tally appelle quand quelqu'un envoie le formulaire.
+que **notre page `/formulaire`** appelle. Tally est sorti de la chaîne le
+23 septembre : le lien du SMS doit porter le code de l'artisan appelé, et
+un Tally ne sait pas rattacher une réponse à un code qu'il ignore.
+
+La charge utile est désormais plate — `{ code, prenom, telephone, email,
+lieu, besoin, urgence_dite }` — donc `{{2.prenom}}` et non plus
+`{{2.data.fields[1].value}}`.
 
 | # | module | ce qu'il fait |
 |---|---|---|
-| 2 | `gateway:CustomWebHook` | reçoit la réponse Tally |
+| 2 | `gateway:CustomWebHook` | reçoit le formulaire |
+| 15 | `http:ActionSendData` | **GET /artisans?code=eq.{{upper(trim(2.code))}}** — retrouve l'artisan |
 | 5 | `http:ActionSendData` | **POST /demandes** — l'enregistrement, avant tout traitement |
 | 9 | `gemini-ai` | classe la gravité → `gravite\|motif\|panier` — `onerror: Resume` |
 | 8 | `gemini-ai` | rédige l'e-mail de réponse au client — `onerror: Resume` |
@@ -38,7 +45,14 @@ que Tally appelle quand quelqu'un envoie le formulaire.
 |---|---|---|
 | 3 | `google-email` | e-mail au client — filtre : l'adresse doit contenir `@` |
 
-`dlq: true`, `maxErrors: 10`. Une exécution complète coûte **7 opérations**.
+`dlq: true`, `maxErrors: 10`. Une exécution complète coûte **8 opérations**
+(7 avant l'ajout du module 15).
+
+**Le module 15 demande `application/vnd.pgrst.object+json`, et c'est
+délibéré** : un code inconnu rend alors **406** au lieu d'une liste vide.
+Le module échoue, l'exécution part en file d'attente, Make prévient. Une
+insertion avec un `artisan_id` vide, elle, aurait été un 400 sans rien
+garder — et une demande rattachée à personne serait passée inaperçue.
 
 ### Ce qui se passe quand l'insertion échoue
 

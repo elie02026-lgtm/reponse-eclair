@@ -7,6 +7,11 @@
 // transforme une information en fausse déclaration contractuelle.
 //
 // Vérifié : région Supabase eu-west-3 (Paris), zone Make eu1.
+//
+// TALLY EN EST SORTI LE 23 SEPTEMBRE 2026. Le formulaire est désormais une
+// page à nous (`/formulaire`), parce que le lien du SMS doit porter le code
+// de l'artisan appelé. Un sous-traitant de moins, et une ligne de moins à
+// justifier. Le retirer d'ici le retire des deux pages d'un coup.
 
 export type SousTraitant = {
   nom: string
@@ -46,12 +51,6 @@ export const SOUS_TRAITANTS: SousTraitant[] = [
     role: 'Envoi des e-mails de réponse et de relance',
     lieu: 'Hors UE',
     horsUe: true,
-  },
-  {
-    nom: 'Tally',
-    role: 'Formulaire de description du besoin',
-    lieu: 'Union européenne',
-    horsUe: false,
   },
 ]
 

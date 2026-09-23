@@ -41,6 +41,63 @@
       }
     },
     {
+      "id": 15,
+      "mapper": {
+        "ca": "",
+        "qs": [
+          {
+            "name": "select",
+            "value": "id"
+          },
+          {
+            "name": "code",
+            "value": "eq.{{upper(trim(2.code))}}"
+          }
+        ],
+        "url": "https://ysmuqebqqlempkacqfhl.supabase.co/rest/v1/artisans",
+        "gzip": true,
+        "method": "get",
+        "headers": [
+          {
+            "name": "apikey",
+            "value": "CLE_DE_SERVICE_A_REMETTRE_AVANT_RESTAURATION"
+          },
+          {
+            "name": "Authorization",
+            "value": "Bearer CLE_DE_SERVICE_A_REMETTRE_AVANT_RESTAURATION"
+          },
+          {
+            "name": "Accept",
+            "value": "application/vnd.pgrst.object+json"
+          }
+        ],
+        "timeout": "",
+        "useMtls": false,
+        "authPass": "",
+        "authUser": "",
+        "bodyType": "",
+        "serializeUrl": false,
+        "shareCookies": false,
+        "parseResponse": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "followAllRedirects": false,
+        "rejectUnauthorized": true
+      },
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      }
+    },
+    {
       "id": 5,
       "mapper": {
         "ca": "",
@@ -74,31 +131,31 @@
         "formFields": [
           {
             "key": "artisan_id",
-            "value": "deb16d63-b66f-4bcc-b2f7-775693114af2"
+            "value": "{{15.data.id}}"
           },
           {
             "key": "prenom",
-            "value": "{{2.data.fields[1].value}}"
+            "value": "{{2.prenom}}"
           },
           {
             "key": "email",
-            "value": "{{2.data.fields[3].value}}"
+            "value": "{{2.email}}"
           },
           {
             "key": "telephone",
-            "value": "{{2.data.fields[4].value}}"
+            "value": "{{2.telephone}}"
           },
           {
             "key": "lieu",
-            "value": "{{2.data.fields[6].value}}"
+            "value": "{{2.lieu}}"
           },
           {
             "key": "besoin",
-            "value": "{{2.data.fields[7].value}}"
+            "value": "{{2.besoin}}"
           },
           {
             "key": "urgence_dite",
-            "value": "{{join(map(2.data.fields[5].options; \"text\"; \"id\"; join(2.data.fields[5].value; \",\")); \", \")}}"
+            "value": "{{2.urgence_dite}}"
           }
         ],
         "serializeUrl": false,
@@ -148,7 +205,7 @@
           }
         },
         "designer": {
-          "x": 300,
+          "x": 600,
           "y": 0
         },
         "parameters": [
@@ -174,7 +231,7 @@
       "filter": null,
       "mapper": {
         "model": "gemini-2.5-flash",
-        "textPrompt": "Tu classes une demande reçue par un artisan du bâtiment, métier : plombier-chauffagiste.\n\nCe que le client a écrit : {{2.data.fields[7].value}}\nCe que le client a coché : {{join(map(2.data.fields[5].options; \"text\"; \"id\"; join(2.data.fields[5].value; \",\")); \", \")}}\nDate du jour : {{formatDate(now; \"D MMMM YYYY\")}}\n\nRéponds par UNE SEULE LIGNE, exactement au format :\ngravite|motif|panier\n\ngravite vaut 3 si la description indique un dégât en cours ou un danger : fuite qui coule, dégât des eaux, odeur de gaz, plus aucun chauffage en période froide, panne électrique totale.\ngravite vaut 2 si c'est une panne gênante sans danger : chauffe-eau, WC bouché, un radiateur froid, robinet qui goutte.\ngravite vaut 1 si c'est un projet ou un devis sans urgence : rénovation, installation neuve, remplacement esthétique.\n\nIGNORE ce que le client a coché. Il coche presque toujours urgent. Juge uniquement sur ce qu'il décrit.\n\nmotif : deux à quatre mots en minuscules, sans accent.\npanier : un nombre entier en euros, montant typique facturé pour ce type d'intervention, sans symbole ni espace.\n\nN'écris rien d'autre. Aucune explication, aucun retour à la ligne, aucune ponctuation finale.\nExemple de réponse valide : 3|fuite sous evier|180"
+        "textPrompt": "Tu classes une demande reçue par un artisan du bâtiment, métier : plombier-chauffagiste.\n\nCe que le client a écrit : {{2.besoin}}\nCe que le client a coché : {{2.urgence_dite}}\nDate du jour : {{formatDate(now; \"D MMMM YYYY\")}}\n\nRéponds par UNE SEULE LIGNE, exactement au format :\ngravite|motif|panier\n\ngravite vaut 3 si la description indique un dégât en cours ou un danger : fuite qui coule, dégât des eaux, odeur de gaz, plus aucun chauffage en période froide, panne électrique totale.\ngravite vaut 2 si c'est une panne gênante sans danger : chauffe-eau, WC bouché, un radiateur froid, robinet qui goutte.\ngravite vaut 1 si c'est un projet ou un devis sans urgence : rénovation, installation neuve, remplacement esthétique.\n\nIGNORE ce que le client a coché. Il coche presque toujours urgent. Juge uniquement sur ce qu'il décrit.\n\nmotif : deux à quatre mots en minuscules, sans accent.\npanier : un nombre entier en euros, montant typique facturé pour ce type d'intervention, sans symbole ni espace.\n\nN'écris rien d'autre. Aucune explication, aucun retour à la ligne, aucune ponctuation finale.\nExemple de réponse valide : 3|fuite sous evier|180"
       },
       "module": "gemini-ai:simpleTextPrompt",
       "onerror": [
@@ -202,7 +259,7 @@
           }
         },
         "designer": {
-          "x": 600,
+          "x": 900,
           "y": 0
         }
       },
@@ -213,7 +270,7 @@
       "filter": null,
       "mapper": {
         "model": "gemini-2.5-flash",
-        "textPrompt": "Tu es l'assistant d'un artisan du bâtiment en France. Un prospect vient de remplir une demande de devis. Rédige UNIQUEMENT le texte d'un email de réponse, chaleureux et vouvoyé, 4 à 5 phrases maximum, qui : le salue par son prénom, reprend explicitement le problème qu'il a décrit dès la première phrase, et l'invite à choisir directement le créneau qui l'arrange via ce lien : https://cal.com/elie-gywz5w/rdv . Ajoute une seule phrase précisant qu'en cas d'urgence il peut appeler directement au 07 67 67 82 73. Écris comme un artisan qui répond vite entre deux chantiers : phrases courtes, mots simples, aucun jargon commercial. Emploie toujours « je », jamais « nous ». N'écris jamais « nos services », « vos attentes » ni « n'hésitez pas ». N'écris ni objet, ni signature, ni prix.\n\nPrénom du prospect : {{2.data.fields[1].value}}\nCe qu'il demande : {{2.data.fields[7].value}}\nUrgence : {{join(map(2.data.fields[5].options; \"text\"; \"id\"; join(2.data.fields[5].value; \",\")); \", \")}}\nLieu : {{2.data.fields[6].value}}"
+        "textPrompt": "Tu es l'assistant d'un artisan du bâtiment en France. Un prospect vient de remplir une demande de devis. Rédige UNIQUEMENT le texte d'un email de réponse, chaleureux et vouvoyé, 4 à 5 phrases maximum, qui : le salue par son prénom, reprend explicitement le problème qu'il a décrit dès la première phrase, et l'invite à choisir directement le créneau qui l'arrange via ce lien : https://cal.com/elie-gywz5w/rdv . Ajoute une seule phrase précisant qu'en cas d'urgence il peut appeler directement au 07 67 67 82 73. Écris comme un artisan qui répond vite entre deux chantiers : phrases courtes, mots simples, aucun jargon commercial. Emploie toujours « je », jamais « nous ». N'écris jamais « nos services », « vos attentes » ni « n'hésitez pas ». N'écris ni objet, ni signature, ni prix.\n\nPrénom du prospect : {{2.prenom}}\nCe qu'il demande : {{2.besoin}}\nUrgence : {{2.urgence_dite}}\nLieu : {{2.lieu}}"
       },
       "module": "gemini-ai:simpleTextPrompt",
       "onerror": [
@@ -241,7 +298,7 @@
           }
         },
         "designer": {
-          "x": 900,
+          "x": 1200,
           "y": 0
         }
       },
@@ -254,7 +311,7 @@
       "mapper": null,
       "metadata": {
         "designer": {
-          "x": 1200,
+          "x": 1500,
           "y": 0
         }
       },
@@ -267,7 +324,7 @@
                 "to": [
                   "elie02026@gmail.com"
                 ],
-                "content": "<strong>Nouvelle demande — rappelle vite.</strong><br><br>\r\n🎯 <strong>{{ifempty(trim(get(split(9.result; \"|\"); 2)); \"classification indisponible — juge toi-même\")}}</strong> · gravité {{ifempty(trim(get(split(9.result; \"|\"); 1)); \"?\")}}/3 · ~{{ifempty(trim(get(split(9.result; \"|\"); 3)); \"?\")}} €<br><br>\r\n👤 {{2.data.fields[1].value}}<br>\r\n📞 <a href=\"tel:{{2.data.fields[4].value}}\"><strong>{{2.data.fields[4].value}}</strong></a><br>\r\n📍 <a href=\"https://www.google.com/maps/search/{{encodeURL(2.data.fields[6].value)}}\">{{2.data.fields[6].value}}</a><br>\r\n✉️ <a href=\"mailto:{{2.data.fields[3].value}}\">{{2.data.fields[3].value}}</a><br><br>\r\n⏱️ Ce qu'il a coché : {{join(map(2.data.fields[5].options; \"text\"; \"id\"; join(2.data.fields[5].value; \",\")); \", \")}}<br>\r\n📋 {{2.data.fields[7].value}}",
+                "content": "<strong>Nouvelle demande — rappelle vite.</strong><br><br>\r\n🎯 <strong>{{ifempty(trim(get(split(9.result; \"|\"); 2)); \"classification indisponible — juge toi-même\")}}</strong> · gravité {{ifempty(trim(get(split(9.result; \"|\"); 1)); \"?\")}}/3 · ~{{ifempty(trim(get(split(9.result; \"|\"); 3)); \"?\")}} €<br><br>\r\n👤 {{2.prenom}}<br>\r\n📞 <a href=\"tel:{{2.telephone}}\"><strong>{{2.telephone}}</strong></a><br>\r\n📍 <a href=\"https://www.google.com/maps/search/{{encodeURL(2.lieu)}}\">{{2.lieu}}</a><br>\r\n✉️ <a href=\"mailto:{{2.email}}\">{{2.email}}</a><br><br>\r\n⏱️ Ce qu'il a coché : {{2.urgence_dite}}<br>\r\n📋 {{2.besoin}}",
                 "subject": "🔔 Nouvelle demande de devis à rappeler",
                 "bodyType": "rawHtml"
               },
@@ -312,7 +369,7 @@
                   }
                 },
                 "designer": {
-                  "x": 1500,
+                  "x": 1800,
                   "y": 0
                 },
                 "parameters": [
@@ -431,7 +488,7 @@
                   }
                 },
                 "designer": {
-                  "x": 1800,
+                  "x": 2100,
                   "y": 0
                 },
                 "parameters": [
@@ -463,7 +520,7 @@
                 "conditions": [
                   [
                     {
-                      "a": "{{2.data.fields[3].value}}",
+                      "a": "{{2.email}}",
                       "b": "@",
                       "o": "text:contain"
                     }
@@ -471,7 +528,7 @@
                 ]
               },
               "mapper": {
-                "to": "{{2.data.fields[3].value}}",
+                "to": "{{2.email}}",
                 "content": "{{ifempty(8.result; \"Bonjour, j'ai bien reçu votre demande. Je la regarde et je vous rappelle.<br><br>Si c'est urgent, appelez-moi directement au 07 67 67 82 73.\")}}",
                 "subject": "Votre demande de devis a bien été reçue",
                 "bodyType": "rawHtml"
@@ -515,7 +572,7 @@
                   }
                 },
                 "designer": {
-                  "x": 1500,
+                  "x": 1800,
                   "y": 300
                 },
                 "parameters": [

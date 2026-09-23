@@ -138,13 +138,32 @@ comment on function deposer_demande(text, text, text, text, text, text, text) is
   'Dépose une demande en résolvant l''artisan par son code court. Rend l''identifiant créé, ou NULL si le code est inconnu — la demande part alors dans demandes_orphelines. Réservée à la clé de service.';
 
 -- ─────────────────────────────────────────────────────────────────────────
--- 4. CE QUI RESTE À FAIRE, ET QUI N'EST PAS ICI.
+-- 4. CE QUI S'EST PASSÉ ENSUITE, LE MÊME SOIR.
 -- ─────────────────────────────────────────────────────────────────────────
--- Le module 5 du scénario de capture insère TOUJOURS en dur. Cette
--- migration pose la porte ; la brancher veut dire réécrire ce module pour
--- qu'il appelle `/rest/v1/rpc/deposer_demande` au lieu de `/rest/v1/demandes`,
--- et c'est un changement de blueprint — donc avec Elie devant l'écran.
+-- `deposer_demande` N'EST PAS SUR LE CHEMIN DE PRODUCTION, et ce n'est pas
+-- un oubli : c'est une correction de trajectoire, mesurée.
 --
--- Rien n'alerte non plus sur une orpheline. Tant qu'il n'y a qu'un artisan,
--- le cas ne peut pas se produire ; le jour où il y en a deux, il faudra une
--- ligne de plus dans l'écran de santé.
+-- Pour l'appeler, Make doit poster du JSON. Or Make n'a AUCUNE fonction
+-- d'échappement JSON — c'est une demande ouverte de longue date dans sa
+-- communauté. Le corps se construirait donc par concaténation de chaînes,
+-- et le premier client qui écrit un retour à la ligne dans « que se
+-- passe-t-il ? » casserait la requête. Un champ de texte libre sur
+-- plusieurs lignes : autant dire tous les clients.
+--
+-- Le chemin retenu est celui que Make sait faire proprement : un module de
+-- plus qui lit `/rest/v1/artisans?code=eq.{{upper(trim(2.code))}}`, puis
+-- l'insertion habituelle en `x_www_form_urlencoded`, que Make échappe.
+--
+-- Vérifié le 23 septembre à 17 h 59 depuis la vraie page, avec un texte
+-- contenant un retour à la ligne, des guillemets doubles, une esperluette
+-- et une apostrophe : les 76 caractères sont arrivés intacts en base.
+--
+-- Et le comportement sur code inconnu est MEILLEUR que celui décrit au
+-- point 1 : l'en-tête `application/vnd.pgrst.object+json` fait rendre 406
+-- au lieu d'une liste vide, le module échoue, l'exécution part en file
+-- d'attente et Make prévient Elie dans les trois secondes. Une orpheline,
+-- elle, serait restée silencieuse — c'est exactement ce qu'on reproche à
+-- une panne muette.
+--
+-- `deposer_demande` et `demandes_orphelines` restent en place : ils sont la
+-- bonne réponse le jour où on quittera Make, et ils ne coûtent rien.
