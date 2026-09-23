@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { supabase } from './lib/supabase'
 import { exporterDemandes } from './lib/export'
 import { analyserSms } from './lib/sms'
+import Resiliation from './Resiliation'
 import type { Artisan } from './types'
 
 // Le calcul du coût d'un SMS vit dans lib/sms.ts : il est pur, donc testé.
@@ -17,6 +18,13 @@ export default function Reglages() {
   const [envoi, setEnvoi] = useState(false)
   const [exportEnCours, setExportEnCours] = useState(false)
   const [exportMessage, setExportMessage] = useState<string | null>(null)
+
+  // Le nom TEL QU'IL EST EN BASE, pas tel qu'il est dans le champ.
+  // La résiliation demande de taper le nom de l'entreprise, et c'est la base
+  // qui vérifie. Si l'artisan a modifié le champ sans enregistrer, l'écran
+  // réclamerait un nom que Postgres refuserait : il taperait juste, et se
+  // ferait jeter sans comprendre.
+  const [entrepriseEnregistree, setEntrepriseEnregistree] = useState('')
 
   async function exporter() {
     setExportEnCours(true)
@@ -39,7 +47,10 @@ export default function Reglages() {
       .then(({ data, error }) => {
         if (error) setErreur(error.message)
         else if (!data) setErreur("Aucune fiche artisan n'est rattachée à ce compte.")
-        else setArtisan(data as Artisan)
+        else {
+          setArtisan(data as Artisan)
+          setEntrepriseEnregistree((data as Artisan).entreprise)
+        }
         setChargement(false)
       })
   }, [])
@@ -75,6 +86,7 @@ export default function Reglages() {
       setErreur('Aucune ligne modifiée. La fiche ne vous appartient pas.')
       return
     }
+    setEntrepriseEnregistree(artisan.entreprise)
     setSucces(true)
   }
 
@@ -96,6 +108,7 @@ export default function Reglages() {
   const sms = analyserSms(artisan.message_sms)
 
   return (
+    <div className="space-y-4">
     <form onSubmit={enregistrer} className="space-y-4">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Réglages</h2>
 
@@ -234,5 +247,9 @@ export default function Reglages() {
         {exportMessage && <p className="text-sm text-slate-600">{exportMessage}</p>}
       </div>
     </form>
+
+      {/* Hors du <form> : à l'intérieur, son bouton enverrait les réglages. */}
+      <Resiliation entreprise={entrepriseEnregistree} />
+    </div>
   )
 }
