@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase'
 import { changerStatut } from './lib/demandes'
 import CarteDemande from './CarteDemande'
 import Sante from './Sante'
+import PremiersPas from './PremiersPas'
 import type { Demande, Statut } from './types'
 
 export default function ARappeler() {
@@ -87,11 +88,9 @@ export default function ARappeler() {
         <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</p>
       )}
 
-      {!chargement && demandes.length === 0 && (
-        <p className="rounded-lg bg-white px-4 py-6 text-center text-slate-500 ring-1 ring-slate-200">
-          Aucune demande à rappeler.
-        </p>
-      )}
+      {/* Écran vide : on ne dit plus « rien pour l'instant » à quelqu'un dont
+          le numéro n'est pas configuré et pour qui rien ne viendra jamais. */}
+      {!chargement && demandes.length === 0 && <PremiersPas />}
 
       {nonClassees.length > 0 && (
         <>
