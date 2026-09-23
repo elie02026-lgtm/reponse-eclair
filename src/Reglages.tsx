@@ -209,6 +209,14 @@ export default function Reglages() {
             {artisan.numero_twilio ? 'configuré' : 'non configuré'}
           </span>
         </div>
+        {/* Le code qui voyagera dans le lien du SMS. Affiché ici parce que
+            c'est ce qu'on se lira au téléphone le jour où une demande
+            n'arrive pas : « quel code as-tu ? ». Un identifiant invisible
+            est un identifiant qu'on ne peut pas déboguer à deux. */}
+        <div className="flex justify-between">
+          <span className="text-slate-500">Code de votre lien</span>
+          <span className="font-mono text-slate-700">{artisan.code}</span>
+        </div>
       </div>
 
       {erreur && (

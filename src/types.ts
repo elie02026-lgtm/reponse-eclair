@@ -25,6 +25,9 @@ export type Artisan = {
   zone_minutes: number | null
   message_sms: string
   numero_twilio: string | null
+  // Identifiant court porté par le lien du SMS (migration 0007). Public,
+  // pas secret : il sert d'adresse, pas de clé.
+  code: string
   cree_le: string | null
 }
 
