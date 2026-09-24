@@ -3,8 +3,23 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import type { Artisan } from './types'
 
-// Le message par défaut, tenu en GSM-7 : 1 seul SMS, pas de caractère
-// qui ferait basculer en Unicode (ê â î ô û ë ï, ç minuscule).
+// Le message par défaut, tenu en GSM-7 : pas un seul caractère qui ferait
+// basculer en Unicode (ê â î ô û ë ï, ç minuscule) — d'où l'apostrophe
+// DROITE, et « répondre » plutôt que « rappeler tout de suite ».
+//
+// Il disait ici « 1 seul SMS ». C'ÉTAIT FAUX, et le compteur le disait
+// aussi : {LIEN} était compté pour six caractères alors qu'il en fait
+// quatre-vingt-un une fois remplacé. Mesuré le 24 septembre :
+//
+//   109 caractères écrits · 184 facturés · 2 SMS
+//
+// Ce n'est pas la faute du texte. Avec une origine courte —
+// `reponse-eclair.fr/f` au lieu de `…elie02026.workers.dev/formulaire` —
+// le même message retombe à 156 unités, donc UN SMS, sans en changer un
+// mot. Le jour du domaine, ce commentaire redevient vrai tout seul.
+//
+// On ne raccourcit donc pas le texte : ce serait abîmer la première phrase
+// que lit quelqu'un qui a une fuite, pour contourner un problème d'adresse.
 function smsParDefaut(entreprise: string): string {
   const nom = entreprise.trim() || 'votre artisan'
   return `Bonjour, ${nom}. Je n'ai pas pu répondre. Décrivez votre besoin ici, je vous rappelle vite : {LIEN}`
