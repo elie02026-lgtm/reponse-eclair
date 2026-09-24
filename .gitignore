@@ -27,3 +27,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Fichiers de travail du dossier make/ : les blueprints exportés sont
+# suivis, mais tout intermédiaire (minifié, brouillon) reste dehors. Un
+# blueprint Make contient la clé de service en clair.
+make/*.txt
+make/*.tmp.json
