@@ -178,6 +178,16 @@ export default function Reglages() {
             par SMS)
           </span>
 
+          {/* SANS CETTE LIGNE, LE COMPTEUR PASSE POUR CASSÉ. L'artisan écrit
+              107 caractères et lit « 182 facturés ». L'écart, c'est le lien :
+              {'{LIEN}'} s'écrit en six signes et part en quatre-vingts. */}
+          {!sms.lienManquant && (
+            <span className="text-xs text-slate-500">
+              dont <strong>{sms.longueurLien}</strong> pour l’adresse qui remplacera{' '}
+              {'{LIEN}'} au moment de l’envoi.
+            </span>
+          )}
+
           {/* Sans {LIEN}, le message invite à décrire son besoin « ici »
               sans donner de « ici ». C'est arrivé sur un vrai compte. */}
           {sms.lienManquant && (

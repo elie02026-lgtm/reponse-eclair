@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { analyserSms } from './sms.ts'
+import { analyserSms, LIEN_EXEMPLE } from './sms.ts'
 
 // Se lance avec :  node --test
 
@@ -53,11 +53,16 @@ test('{ } [ ] ~ ^ \\ | € comptent double sans passer en Unicode', () => {
   }
 })
 
-test('{LIEN} coûte 8 unités, pas 6', () => {
-  // Six caractères à l'écran, huit sur la facture : les accolades sont
-  // échappées. C'est ce que l'ancien compteur ne voyait pas.
+// Ce test disait « {LIEN} coûte 8 unités, pas 6 » : six caractères à
+// l'écran, huit sur la facture, parce que les accolades sont échappées.
+// C'était vrai de la CHAÎNE {LIEN}, et faux du lien réel — les accolades
+// ne partent jamais, elles sont remplacées. Corrigé le 24 septembre.
+// L'échappement des accolades reste vérifié par le test des caractères
+// de la table d'échappement, un peu plus haut.
+test('{LIEN} ne coûte pas ses accolades, mais l’adresse entière', () => {
   const a = analyserSms('{LIEN}')
-  assert.equal(a.unites, 8)
+  assert.equal(a.unites, LIEN_EXEMPLE.length)
+  assert.notEqual(a.unites, 8)
 })
 
 test('au-delà d’un segment, la capacité tombe à 153, pas 160', () => {
@@ -78,13 +83,17 @@ test('un message vide ne coûte aucun segment', () => {
   assert.equal(analyserSms('').segments, 0)
 })
 
-test('le message par défaut du produit tient en un seul SMS', () => {
+// Ce test affirmait « le message par défaut tient en un seul SMS ». Il
+// tenait dans le compteur, pas dans la facture : le lien n'était pas
+// compté. Le message reste en GSM-7 — ça, c'était juste — mais il coûte
+// deux segments. Voir plus bas « le message par défaut coûte DEUX SMS ».
+test('le message par défaut reste en GSM-7, et porte bien son lien', () => {
   const defaut =
     "Bonjour, Plomberie Durand. Je n'ai pas pu répondre. Décrivez votre besoin ici, je vous rappelle vite : {LIEN}"
   const a = analyserSms(defaut)
   assert.equal(a.unicode, false)
-  assert.equal(a.segments, 1)
   assert.equal(a.lienManquant, false)
+  assert.equal(a.segments, 2)
 })
 
 test('un message sans {LIEN} est signalé — le client n’aurait rien à ouvrir', () => {
@@ -98,4 +107,62 @@ test('un emoji compte pour deux unités UTF-16', () => {
   assert.equal(a.unites, 2)
   // Et il n'est compté qu'une fois dans la liste des fautifs.
   assert.deepEqual(a.fautifs, ['🔧'])
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// {LIEN} COÛTE CE QU'IL COÛTERA, PAS CE QU'IL AFFICHE.
+// ─────────────────────────────────────────────────────────────────────────
+// Le compteur lisait {LIEN} comme six caractères. Au moment de l'envoi,
+// c'est une adresse de quatre-vingts. Le message par défaut semblait tenir
+// en un SMS ; il en coûte deux. C'est la plus chère des erreurs de ce
+// fichier, parce qu'elle ne se voit qu'à la facture.
+
+test('{LIEN} est compté comme l’adresse qui le remplacera', () => {
+  const sans = analyserSms('Bonjour')
+  const avec = analyserSms('Bonjour{LIEN}')
+
+  assert.equal(sans.unites, 7)
+  assert.equal(avec.unites, 7 + LIEN_EXEMPLE.length)
+  assert.equal(avec.longueurLien, LIEN_EXEMPLE.length)
+})
+
+test('le lien ne fait jamais basculer un message en Unicode', () => {
+  // Toutes les lettres de l'adresse sont dans le jeu GSM de base. Si un
+  // jour l'origine contient un accent, ce test tombera — et c'est le but.
+  const a = analyserSms('{LIEN}')
+  assert.equal(a.unicode, false)
+  assert.deepEqual(a.fautifs, [])
+})
+
+test('le message par défaut coûte DEUX SMS, pas un', () => {
+  // Apostrophe DROITE, comme dans la vraie fiche en base : elle appartient
+  // au jeu GSM de base, donc le message reste en GSM-7.
+  const message =
+    "Bonjour, Plomberie Test. Je n'ai pas pu répondre. " +
+    'Décrivez votre besoin ici, je vous rappelle vite : {LIEN}'
+
+  const a = analyserSms(message)
+  assert.equal(a.unicode, false)
+  assert.equal(a.unites, 182)
+  assert.equal(a.segments, 2)
+})
+
+// LES DEUX ERREURS SE CUMULENT, ET C'EST LÀ QUE ÇA FAIT MAL.
+// Le même message avec une apostrophe COURBE bascule en Unicode : la
+// capacité tombe de 153 à 67, et les 182 unités deviennent trois SMS.
+test('une apostrophe courbe fait passer le même message à TROIS SMS', () => {
+  const message =
+    'Bonjour, Plomberie Test. Je n’ai pas pu répondre. ' +
+    'Décrivez votre besoin ici, je vous rappelle vite : {LIEN}'
+
+  const a = analyserSms(message)
+  assert.equal(a.unicode, true)
+  assert.deepEqual(a.fautifs, ['’'])
+  assert.equal(a.segments, 3)
+})
+
+test('un message sans {LIEN} est signalé, et le lien ne lui est pas compté', () => {
+  const a = analyserSms('Bonjour, je vous rappelle.')
+  assert.equal(a.lienManquant, true)
+  assert.equal(a.unites, 26)
 })

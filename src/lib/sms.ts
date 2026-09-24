@@ -23,6 +23,13 @@
 //      défaut contient {LIEN} — deux caractères facturés jamais comptés.
 //   3. Au-delà d'un segment, la capacité n'est plus 160 ni 70 mais 153 et
 //      67. Un message de 300 caractères coûte 3 segments, pas 2.
+//
+// Et un quatrième, trouvé le 24 septembre : {LIEN} ÉTAIT COMPTÉ POUR
+// LUI-MÊME. Six caractères à l'écran — quatre-vingts une fois remplacé par
+// la vraie adresse. Le compteur annonçait donc un SMS là où il y en aura
+// deux, et c'est le sens le plus cher de l'erreur : on ne découvre la
+// facture qu'à la fin du mois. On compte désormais le lien tel qu'il
+// partira.
 
 // Jeu de base GSM 03.38. L'ordre n'a aucune importance, l'appartenance si.
 const BASE = new Set(
@@ -34,6 +41,19 @@ const BASE = new Set(
 // occupe la place de deux.
 const ECHAPPES = new Set('^{}\\[~]|€')
 
+// CE QUE {LIEN} DEVIENT AU MOMENT DE L'ENVOI.
+//
+// Forme réelle, telle que la chaîne la construira :
+//   <origine>/formulaire?a=<code 8 signes>&t=<téléphone au format +33…>
+//
+// Le code fait toujours huit signes (migration 0007) et le numéro douze.
+// Seule l'origine peut changer : le jour du vrai domaine, ce lien
+// raccourcira d'une vingtaine de caractères et le compteur suivra tout
+// seul. Tous ces signes appartiennent au jeu GSM de base — un lien ne fait
+// donc jamais basculer un message en Unicode.
+export const LIEN_EXEMPLE =
+  'https://reponse-eclair.elie02026.workers.dev/formulaire?a=GYZGYQZU&t=+33612345678'
+
 export type AnalyseSms = {
   unicode: boolean
   /** Les caractères qui font basculer en UCS-2, sans doublon. */
@@ -44,15 +64,20 @@ export type AnalyseSms = {
   parSegment: number
   /** Le message ne contient pas {LIEN} : le client n'aura aucun lien. */
   lienManquant: boolean
+  /** Longueur réelle du lien substitué, pour pouvoir l'expliquer à l'écran. */
+  longueurLien: number
 }
 
 export function analyserSms(texte: string): AnalyseSms {
+  // On compte le message TEL QU'IL PARTIRA, pas tel qu'il s'écrit.
+  const reel = texte.replaceAll('{LIEN}', LIEN_EXEMPLE)
+
   const fautifs: string[] = []
   let unites = 0
 
   // On parcourt par point de code, pas par unité UTF-16 : sinon un emoji
   // serait vu comme deux caractères inconnus au lieu d'un.
-  for (const c of texte) {
+  for (const c of reel) {
     if (BASE.has(c)) unites += 1
     else if (ECHAPPES.has(c)) unites += 2
     else if (!fautifs.includes(c)) fautifs.push(c)
@@ -62,7 +87,7 @@ export function analyserSms(texte: string): AnalyseSms {
 
   // En UCS-2, on facture les unités UTF-16 : un emoji hors du plan de base
   // en occupe deux. `texte.length` les compte déjà ainsi.
-  if (unicode) unites = texte.length
+  if (unicode) unites = reel.length
 
   const parSegment = unicode ? 70 : 160
   const parSegmentDecoupe = unicode ? 67 : 153
@@ -79,5 +104,6 @@ export function analyserSms(texte: string): AnalyseSms {
     // à son message, pas celle du cas à un seul segment.
     parSegment: segments > 1 ? parSegmentDecoupe : parSegment,
     lienManquant: !texte.includes('{LIEN}'),
+    longueurLien: LIEN_EXEMPLE.length,
   }
 }
