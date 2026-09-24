@@ -44,6 +44,11 @@ export async function enregistrerMontant(
   demande: Demande,
   montant: number,
 ): Promise<{ demande?: Demande; erreur?: string }> {
+  // Première serrure, pour que l'artisan lise un français clair. La seconde
+  // est en base depuis le 24 septembre — `demandes_montant_signe_positif` —
+  // parce que ce test-ci vit dans le navigateur, et que le navigateur n'est
+  // pas l'API : avec la clé déjà présente dans la page, un `-5000` passait
+  // directement par PostgREST. Mesuré, puis fermé.
   if (!Number.isInteger(montant) || montant < 0) {
     return { erreur: 'Le montant doit être un nombre entier d’euros, sans centimes.' }
   }
