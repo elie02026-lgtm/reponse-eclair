@@ -2,7 +2,18 @@
 -- 0011 — RETROUVER UN ARTISAN À PARTIR DU NUMÉRO QU'ON VIENT D'APPELER
 -- ════════════════════════════════════════════════════════════════════════
 --
--- Écrite le 25 septembre 2026. NON APPLIQUÉE : Elie doit la lire d'abord.
+-- Écrite le 25 septembre 2026, montrée à Elie, **appliquée le même jour**
+-- après son accord explicite sur la divulgation décrite plus bas.
+--
+-- Droits relevés après application, et non déduits :
+--   artisan_par_numero  {postgres=X/postgres,anon=X/postgres}   security definer, stable
+--   numero_canonique    {postgres=X/postgres}                   immutable
+--
+-- Et éprouvée en HTTP avec la clé publiable, contre la vraie base :
+--   « +33939031234 », «  33939031234 », « 0939031234 », « 0033939031234 »
+--       → 200, les trois champs, la même ligne à chaque fois
+--   « +33999999999 », « bonjour », «  »  → 406 (l'échec bruyant voulu)
+--   numero_canonique appelée par anon    → 42501 permission denied
 --
 -- Le scénario « Appel manqué → SMS » reçoit de Twilio le numéro appelé
 -- (`To`) et doit en tirer trois choses : le nom de l'entreprise, pour le

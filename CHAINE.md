@@ -7,8 +7,32 @@ un scénario sans le mettre à jour.
 
 **Dernier relevé : 25 septembre 2026, 12 h**, par lecture des blueprints via l'API.
 
-Organisation 8118598, équipe 1989251, zone `eu1`. Forfait **Free** :
-1 000 opérations/mois, journaux d'exécution conservés **7 jours**.
+Organisation 8118598, équipe 1989251, zone `eu1`. Forfait **Free**, relevé
+le 25 septembre dans la licence de l'organisation :
+
+| | |
+|---|---|
+| opérations | **1 000 / mois** (80 consommées au 25 septembre, cycle du 20) |
+| **scénarios ACTIFS** | **2. Pas trois.** |
+| journaux d'exécution | 7 jours |
+| journaux de webhook | 3 jours |
+| durée d'exécution | 5 minutes |
+
+**LE PLAFOND DE DEUX SCÉNARIOS ACTIFS EST LE VRAI MUR.** Le produit en
+demande trois : la capture, la relance, l'appel manqué. Les deux premiers
+occupent les deux places. `scenarios_activate` sur le troisième rend
+« Maximum number of active scenarios has been exceeded » — ce n'est pas un
+réglage, c'est la licence (`license.scenarios: 2`).
+
+Deux sorties, aucune n'est technique :
+1. **Make Core** (~9 €/mois), qui lève le plafond ;
+2. **fondre l'appel manqué dans la capture** — un seul webhook, un routeur
+   qui distingue les deux charges utiles sur la présence de `CallSid`.
+   Gratuit, mais ça couple les deux chaînes les plus importantes, et un
+   mauvais enregistrement casserait les deux au lieu d'une.
+
+Rien ne presse : sans numéro Twilio, le troisième scénario ne peut rien
+recevoir. La décision se prend le jour de l'achat du numéro.
 
 ---
 
@@ -115,8 +139,10 @@ en base sans toucher au blueprint.
 
 ## 3. « Appel manqué → SMS » (id 7342710)
 
-**Construit le 25 septembre. INACTIF, zéro exécution, JAMAIS ÉPROUVÉ.**
-Lire la dernière section de ce chapitre avant de s'y fier.
+**Construit le 25 septembre. INACTIF, zéro exécution.** Non par choix :
+le forfait ne permet que deux scénarios actifs, et ils sont pris. Voir le
+haut de ce fichier. Lire aussi la dernière section de ce chapitre avant de
+s'y fier.
 
 Webhook : `https://hook.eu1.make.com/mfs8lxw6lqivrfc9l2hwg79mm9kmuimb`
 C'est l'adresse à coller dans Twilio, *Phone Numbers → le numéro → Voice →
@@ -180,17 +206,29 @@ Le nom de l'entreprise part dans du XML, donc il est échappé à la main —
 `&`, `<`, `>` — : Make n'a pas plus de fonction d'échappement XML que JSON,
 et « Martin & Fils » casserait le TwiML.
 
-### CE QUI N'EST PAS VÉRIFIÉ, ET QUI NE PEUT PAS L'ÊTRE ENCORE
+### CE QUI EST MESURÉ, ET CE QUI NE L'EST PAS
 
-À écrire noir sur blanc : **ce scénario n'a jamais tourné.** Ce qui est
-mesuré, c'est la forme des requêtes (en `curl`, hors de Make) et le
-comportement de la migration (en transaction annulée). Ce qui ne l'est pas :
+**Le module 3 est éprouvé pour de bon**, en HTTP contre la vraie base, avec
+la requête exacte qu'il enverra (POST form-urlencoded, clé publiable,
+`Accept: …pgrst.object+json`) — migration 0011 appliquée le 25 septembre :
+
+| `p_numero` | réponse |
+|---|---|
+| `+33939031234` | 200, les trois champs |
+| ` 33939031234` (le « + » mangé) | 200, **la même ligne** |
+| `0939031234` | 200, la même ligne |
+| `0033939031234` | 200, la même ligne |
+| `+33999999999`, `bonjour`, vide | 406 — l'échec bruyant voulu |
+
+Témoin négatif : `numero_canonique` appelée par `anon` rend **42501**.
+
+**Mais le scénario, lui, n'a jamais tourné.** Ce qui reste en déduction :
 
 - **l'évaluation des formules par Make** — les `replace` imbriqués, le
-  `{LIEN}` littéral entre accolades simples à l'intérieur d'un `{{ }}` ;
-- **l'encodage du « + » par le module form-urlencoded de Make**. Si Make
-  l'encode mal, `numero_canonique` rattrape — c'est pour ça qu'elle
-  existe — mais ça reste une déduction, pas une mesure ;
+  `{LIEN}` littéral entre accolades simples à l'intérieur d'un `{{ }}`.
+  C'est le seul vrai inconnu qu'une activation de cinq minutes lèverait ;
+- **l'encodage du « + » par le module form-urlencoded de Make** — mais
+  `numero_canonique` rattrape les deux cas, et c'est mesuré ci-dessus ;
 - **`From` porte-t-il bien l'appelant d'origine ?** Sur un renvoi français,
   l'appelant reste normalement dans `From` et l'artisan passe dans
   `ForwardedFrom`. Si c'était l'inverse, on enverrait le SMS à l'artisan
@@ -199,8 +237,9 @@ comportement de la migration (en transaction annulée). Ce qui ne l'est pas :
 
 ### Le jour où un numéro sera acheté
 
-1. appliquer la migration `0011` ;
-2. activer le scénario ;
+1. la migration `0011` est appliquée depuis le 25 septembre ;
+2. libérer une place de scénario actif (voir le haut du fichier), puis
+   activer celui-ci ;
 3. coller l'URL du webhook dans *Voice → A call comes in*, en POST ;
 4. renseigner **Primary handler fails** avec un TwiML Bin statique — sans
    lui, un échec du scénario fait entendre au prospect le message d'erreur
