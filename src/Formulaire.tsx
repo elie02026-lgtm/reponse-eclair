@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from './lib/supabase'
 import { lireTelephone } from './lib/telephone'
+import { lireParametre } from './lib/lien'
 
 // LE FORMULAIRE. C'est la seule page que verra le client de l'artisan.
 //
@@ -40,8 +41,11 @@ type Artisan = { entreprise: string; metier: string }
 type Etat = 'chargement' | 'inconnu' | 'pret' | 'envoi' | 'envoye' | 'panne'
 
 export default function Formulaire() {
-  const params = new URLSearchParams(window.location.search)
-  const code = params.get('a') ?? ''
+  // PAS `URLSearchParams` : elle traduit « + » en espace, et le numéro
+  // qu'on pré-remplit commence par « + ». Voir `lib/lien.ts`, qui porte la
+  // mesure et le témoin.
+  const recherche = window.location.search
+  const code = lireParametre(recherche, 'a')
 
   // L'absence de code se sait AVANT le premier rendu : inutile d'afficher
   // un chargement pour une requête qu'on ne fera pas. (Et oxlint refuse à
@@ -53,7 +57,7 @@ export default function Formulaire() {
   // Pré-rempli avec le numéro porté par le lien, remis en forme lisible.
   // `lireTelephone` sert déjà à ça côté artisan : même code, même résultat.
   const [telephone, setTelephone] = useState(() => {
-    const brut = params.get('t') ?? ''
+    const brut = lireParametre(recherche, 't')
     const lu = lireTelephone(brut)
     return lu.etat === 'ok' ? lu.affichage : brut
   })

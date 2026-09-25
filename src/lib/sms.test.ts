@@ -143,8 +143,23 @@ test('le message par défaut coûte DEUX SMS, pas un', () => {
 
   const a = analyserSms(message)
   assert.equal(a.unicode, false)
-  assert.equal(a.unites, 182)
+  // 180 depuis le 24 septembre, et non plus 182 : le lien porte le numéro
+  // en forme nationale (« 0612345678 », dix signes) au lieu de la forme
+  // internationale (« +33612345678 », douze) — voir `LIEN_EXEMPLE`.
+  assert.equal(a.unites, 180)
   assert.equal(a.segments, 2)
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// LE LIEN NE DOIT PLUS JAMAIS CONTENIR DE « + ».
+// ─────────────────────────────────────────────────────────────────────────
+// Dans une adresse, « + » se lit ESPACE. Le formulaire arrivait donc
+// pré-rempli avec un numéro abîmé. `lib/lien.ts` le répare à la lecture,
+// mais la vraie correction est de ne plus en écrire. Ce test est la
+// serrure : quelqu'un qui « rétablit » la forme internationale le casse.
+test('l’adresse substituée ne contient aucun « + »', () => {
+  assert.equal(LIEN_EXEMPLE.includes('+'), false)
+  assert.match(LIEN_EXEMPLE, /&t=0[1-9]\d{8}$/)
 })
 
 // LES DEUX ERREURS SE CUMULENT, ET C'EST LÀ QUE ÇA FAIT MAL.

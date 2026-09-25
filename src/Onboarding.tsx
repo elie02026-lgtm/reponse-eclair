@@ -9,13 +9,14 @@ import type { Artisan } from './types'
 //
 // Il disait ici « 1 seul SMS ». C'ÉTAIT FAUX, et le compteur le disait
 // aussi : {LIEN} était compté pour six caractères alors qu'il en fait
-// quatre-vingt-un une fois remplacé. Mesuré le 24 septembre :
+// soixante-dix-neuf une fois remplacé. Mesuré le 24 septembre, pour
+// « Plomberie Durand » :
 //
-//   109 caractères écrits · 184 facturés · 2 SMS
+//   109 caractères écrits · 182 facturés · 2 SMS
 //
 // Ce n'est pas la faute du texte. Avec une origine courte —
 // `reponse-eclair.fr/f` au lieu de `…elie02026.workers.dev/formulaire` —
-// le même message retombe à 156 unités, donc UN SMS, sans en changer un
+// le même message retombe à 154 unités, donc UN SMS, sans en changer un
 // mot. Le jour du domaine, ce commentaire redevient vrai tout seul.
 //
 // On ne raccourcit donc pas le texte : ce serait abîmer la première phrase

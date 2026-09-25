@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './lib/supabase'
+import { lireParametre } from './lib/lien'
 
 // Page PUBLIQUE, atteinte depuis un lien en bas d'une relance.
 // Personne n'est connecté ici : le visiteur est un prospect, pas l'artisan.
@@ -18,7 +19,11 @@ export default function Desinscription() {
   // Le jeton est un uuid : ni l'e-mail ni l'id ne circulent dans l'URL.
   // Avec un id numérique, n'importe qui désinscrirait tout le monde en
   // comptant de 1 à 1000.
-  const jeton = new URLSearchParams(window.location.search).get('j')
+  // Un UUID ne contient pas de « + » : ici `URLSearchParams` marchait. On
+  // passe quand même par `lireParametre` pour qu'il n'y ait plus qu'UNE
+  // façon de lire une adresse dans ce dépôt — sinon le piège revient par
+  // la porte qu'on a laissée ouverte.
+  const jeton = lireParametre(window.location.search, 'j') || null
   const [etat, setEtat] = useState<Etat>('attente')
   const [email, setEmail] = useState<string | null>(null)
 

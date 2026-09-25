@@ -43,16 +43,28 @@ const ECHAPPES = new Set('^{}\\[~]|€')
 
 // CE QUE {LIEN} DEVIENT AU MOMENT DE L'ENVOI.
 //
-// Forme réelle, telle que la chaîne la construira :
-//   <origine>/formulaire?a=<code 8 signes>&t=<téléphone au format +33…>
+// Forme réelle, telle que le scénario « Appel manqué → SMS » la construit :
+//   <origine>/formulaire?a=<code 8 signes>&t=<téléphone en 0…>
 //
-// Le code fait toujours huit signes (migration 0007) et le numéro douze.
-// Seule l'origine peut changer : le jour du vrai domaine, ce lien
+// LE NUMÉRO PART EN FORME NATIONALE, ET CE N'EST PAS UN DÉTAIL DE GOÛT.
+// Twilio annonce l'appelant en « +33612345678 ». Écrit tel quel dans une
+// adresse, le « + » y signifie ESPACE — c'est la règle des formulaires
+// HTML, qu'applique `URLSearchParams`. Le champ arrivait donc pré-rempli
+// avec « 33612345678 » précédé d'un espace, que `lireTelephone` déclare
+// invalide. Deux réponses, les deux en place :
+//
+//   • le lien porte « 0612345678 » (le scénario fait la conversion), donc
+//     plus de « + » à abîmer — et deux caractères de moins par SMS ;
+//   • `lib/lien.ts` lit la chaîne de requête sans traduire le « + », pour
+//     qu'un appelant étranger, lui, arrive quand même entier.
+//
+// Le code fait toujours huit signes (migration 0007) et le numéro dix.
+// Seule l'origine peut encore changer : le jour du vrai domaine, ce lien
 // raccourcira d'une vingtaine de caractères et le compteur suivra tout
 // seul. Tous ces signes appartiennent au jeu GSM de base — un lien ne fait
 // donc jamais basculer un message en Unicode.
 export const LIEN_EXEMPLE =
-  'https://reponse-eclair.elie02026.workers.dev/formulaire?a=GYZGYQZU&t=+33612345678'
+  'https://reponse-eclair.elie02026.workers.dev/formulaire?a=GYZGYQZU&t=0612345678'
 
 export type AnalyseSms = {
   unicode: boolean
