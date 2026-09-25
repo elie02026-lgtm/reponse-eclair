@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { enCsv, echappe, COLONNES } from './csv.ts'
+import { enCsv, echappe, COLONNES, nomFichierExport } from './csv.ts'
 import type { Demande } from '../types.ts'
 
 // Se lance avec :  node --test
@@ -99,4 +99,45 @@ test('chaque ligne a le même nombre de colonnes qu’il y a d’en-têtes', () 
   // par un saut de ligne).
   assert.equal(lignes, 5)
   assert.equal(separateurs, 4 * (COLONNES.length - 1))
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// L'HEURE ÉCRITE NE DOIT DÉPENDRE D'AUCUNE HORLOGE
+// ─────────────────────────────────────────────────────────────────────────
+// Ces trois tests seraient passés au vert sur une machine réglée sur Paris
+// et au rouge sur une machine réglée ailleurs — c'est-à-dire qu'ils
+// n'auraient rien prouvé. Ils fixent maintenant le résultat attendu en
+// dur, donc ils disent la même chose partout. Trouvé le 25 septembre 2026
+// sur une machine dont l'horloge Windows était sur Asia/Jerusalem.
+
+test('UN CSV PORTE L’HEURE DE PARIS, PAS CELLE DE LA MACHINE', () => {
+  // 22 h 30 UTC le 25 septembre = 00 h 30 le 26 à Paris (heure d'été).
+  const lignes = enCsv([
+    demande({ id: 1, recue_le: '2026-09-25T22:30:00Z' }),
+  ]).split('\n')
+
+  assert.match(lignes[1], /26\/09\/2026 00:30/)
+  // Le témoin de ce qui était écrit avant, sur cette machine-là :
+  assert.doesNotMatch(lignes[1], /01:30/)
+})
+
+test('et il le porte aussi en heure d’hiver', () => {
+  // 22 h 30 UTC le 15 janvier = 23 h 30 le 15 à Paris (UTC+1).
+  const lignes = enCsv([
+    demande({ id: 1, recue_le: '2026-01-15T22:30:00Z' }),
+  ]).split('\n')
+  assert.match(lignes[1], /15\/01\/2026 23:30/)
+})
+
+test('le nom du fichier est daté à Paris, pas en UTC', () => {
+  // Il portait la date UTC : un export lancé à 00 h 30 le 26 s'appelait
+  // « …-25.csv ». Deux exports à une nuit d'écart, le même nom.
+  assert.equal(
+    nomFichierExport(new Date('2026-09-25T22:30:00Z')),
+    'reponse-eclair-demandes-2026-09-26.csv',
+  )
+  assert.equal(
+    nomFichierExport(new Date('2026-09-25T21:30:00Z')),
+    'reponse-eclair-demandes-2026-09-25.csv',
+  )
 })

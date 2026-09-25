@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { enCsv } from './csv'
+import { enCsv, nomFichierExport } from './csv'
 import type { Demande } from '../types'
 
 // Ce fichier ne fait que deux choses : lire la base, et poser un fichier sur
@@ -21,7 +21,8 @@ export async function exporterDemandes(): Promise<{ lignes?: number; erreur?: st
   const url = URL.createObjectURL(fichier)
   const lien = document.createElement('a')
   lien.href = url
-  lien.download = `reponse-eclair-demandes-${new Date().toISOString().slice(0, 10)}.csv`
+  // Daté à Paris, pas en UTC — voir `nomFichierExport`.
+  lien.download = nomFichierExport(new Date())
   lien.click()
   // Libérer l'URL : sans ça, le fichier reste en mémoire tant que l'onglet vit.
   URL.revokeObjectURL(url)

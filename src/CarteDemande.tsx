@@ -13,7 +13,12 @@ function tempsEcoule(iso: string): string {
   return `il y a ${Math.floor(heures / 24)} j`
 }
 
+// Heure de PARIS, pas celle de l'appareil. Sans `timeZone`, un artisan qui
+// consulte son écran depuis l'étranger — ou dont l'horloge est mal réglée,
+// ce qui arrive plus souvent qu'on ne croit — lirait une heure d'arrivée
+// fausse, et rappellerait « ce matin » quelqu'un qui a appelé cette nuit.
 const dateCourte = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: 'Europe/Paris',
   day: 'numeric',
   month: 'short',
   hour: '2-digit',
