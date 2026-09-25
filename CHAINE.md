@@ -78,6 +78,37 @@ Le module échoue, l'exécution part en file d'attente, Make prévient. Une
 insertion avec un `artisan_id` vide, elle, aurait été un 400 sans rien
 garder — et une demande rattachée à personne serait passée inaperçue.
 
+### LE 25 SEPTEMBRE, CETTE CHAÎNE A SERVI POUR DE VRAI — LA PREMIÈRE FOIS
+
+Fait troublant relevé ce jour-là : **la dernière demande en base datait du
+22 septembre à 20 h 27**, et notre formulaire a remplacé Tally le **23**.
+Autrement dit, tout ce qui est en base vient de Tally. Le chemin
+« vrai formulaire dans un navigateur → webhook → base » n'avait jamais été
+parcouru. Les témoins du 23 étaient des charges utiles envoyées à la main
+au webhook, pas des soumissions de la page.
+
+Parcouru le 25 septembre, depuis le site déployé, dans un navigateur :
+
+`/formulaire?a=GYZGYQZU&t=+33612345678` → prénom TEMOIN, commune Marseille
+13001, e-mail laissé vide, et surtout :
+
+| | |
+|---|---|
+| ce que le client a coché | **« Oui, c'est urgent »** |
+| ce qu'il a écrit | « un devis pour refaire ma salle de bain l'an prochain, rien ne presse » |
+| ce que l'IA a répondu | **gravité 1**, motif `devis salle bain`, panier 9 000 € |
+
+**L'IA a contredit le client.** C'est le produit, mesuré en production, pas
+dans une maquette. À comparer avec la ligne 8 — « robinet fuite dans toute
+la maison » → **gravité 3**. Une fuite passe devant un devis qui se dit
+urgent : c'est exactement le tri que décrit la Partie 5 du cahier.
+
+Relevé aussi au passage : le numéro était pré-rempli correctement
+(« 06 12 34 56 78 » depuis un lien portant `+33612345678`), la ligne a été
+attribuée au bon artisan, et la gravité a été écrite quelques secondes
+après l'insertion — donc le routeur du 23 tient. Ligne témoin effacée
+ensuite.
+
 ### Ce qui se passe quand l'insertion échoue
 
 Mesuré le 23 septembre 2026 à 17 h 24, panne injectée en base :
