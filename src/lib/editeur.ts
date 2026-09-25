@@ -15,21 +15,48 @@
 // rédaction contractuelle demandent une relecture par quelqu'un dont c'est
 // le métier.
 
+// CE QUE LA LOI EXIGE, ET OÙ ELLE L'EXIGE.
+//
+// Pour un site édité à titre professionnel par une PERSONNE PHYSIQUE —
+// ce que sera une entreprise individuelle — il faut publier : nom, prénoms,
+// DOMICILE, NUMÉRO DE TÉLÉPHONE, et le numéro d'inscription au RCS ou au
+// répertoire des métiers. Plus le numéro de TVA intracommunautaire quand
+// on y est assujetti — ici non, voir `REGIME_TVA` plus bas.
+//
+// La référence a changé le 21 mai 2024 : la loi SREN (n° 2024-449) a
+// déplacé cette liste de l'article 6, III de la LCEN vers son **article
+// 1-1, I**. Citer « article 6 III » aujourd'hui, c'est citer un texte qui
+// n'existe plus — d'où cette note, pour qu'on ne le recopie pas d'un
+// modèle trouvé en ligne.
+//
+// LE TÉLÉPHONE MANQUAIT ICI. Je l'avais oublié en écrivant les trois
+// pages : sans lui, les mentions légales auraient été incomplètes le jour
+// même de leur mise en ligne.
 export type Identite = {
   denomination: string | null
   statut: string | null
   siret: string | null
   adresse: string | null
+  telephone: string | null
   email: string | null
   directeur: string | null
 }
 
 // À REMPLIR le jour de l'immatriculation, ici et nulle part ailleurs.
+//
+// `adresse` DEVIENDRA PUBLIQUE, et c'est irréversible au sens où on ne
+// reprend pas ce qui a été indexé. Une domiciliation au domicile fait
+// paraître ce domicile sur ces trois pages. On peut masquer l'adresse du
+// répertoire Sirene (insee.fr, droit d'opposition de l'article R123-232-1
+// du code de commerce), mais PAS des mentions légales du site : la loi les
+// impose. Le seul moyen de publier une autre adresse est d'en avoir une
+// autre — société de domiciliation, ~20 à 30 € par mois.
 export const EDITEUR: Identite = {
   denomination: null,
   statut: null,
   siret: null,
   adresse: null,
+  telephone: null,
   email: null,
   directeur: null,
 }

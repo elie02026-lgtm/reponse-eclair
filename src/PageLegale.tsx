@@ -37,6 +37,10 @@ export function BlocEditeur() {
       </li>
       <li>SIRET {EDITEUR.siret}</li>
       <li>{EDITEUR.adresse}</li>
+      {/* Exigé pour une personne physique éditant à titre professionnel :
+          LCEN, article 1-1, I — depuis la loi SREN du 21 mai 2024, qui l'a
+          déplacé de l'article 6, III. */}
+      <li>Téléphone : {EDITEUR.telephone}</li>
       <li>Directeur de la publication : {EDITEUR.directeur}</li>
       <li>Contact : {EDITEUR.email}</li>
     </ul>
