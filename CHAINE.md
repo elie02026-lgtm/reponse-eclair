@@ -5,7 +5,7 @@ rien ne les versionne. Ce fichier est le seul endroit où leur forme est
 écrite. Il est relevé à la main, daté, et il ment dès que quelqu'un touche
 un scénario sans le mettre à jour.
 
-**Dernier relevé : 23 septembre 2026, 18 h**, par lecture des blueprints via l'API.
+**Dernier relevé : 25 septembre 2026, 12 h**, par lecture des blueprints via l'API.
 
 Organisation 8118598, équipe 1989251, zone `eu1`. Forfait **Free** :
 1 000 opérations/mois, journaux d'exécution conservés **7 jours**.
@@ -115,8 +115,109 @@ en base sans toucher au blueprint.
 
 ## 3. « Appel manqué → SMS » (id 7342710)
 
-**Inactif, zéro exécution.** Un webhook et une réponse, rien d'autre.
-C'est l'ébauche d'A1/A2, créée le 10 septembre et jamais remplie.
+**Construit le 25 septembre. INACTIF, zéro exécution, JAMAIS ÉPROUVÉ.**
+Lire la dernière section de ce chapitre avant de s'y fier.
+
+Webhook : `https://hook.eu1.make.com/mfs8lxw6lqivrfc9l2hwg79mm9kmuimb`
+C'est l'adresse à coller dans Twilio, *Phone Numbers → le numéro → Voice →
+A call comes in*, en **HTTP POST**.
+
+| # | module | ce qu'il fait |
+|---|---|---|
+| 1 | `gateway:CustomWebHook` | reçoit l'appel entrant de Twilio |
+| 3 | `http:ActionSendData` | **POST /rpc/artisan_par_numero** avec `p_numero = {{1.To}}` |
+| 2 | `gateway:WebhookRespond` | rend le TwiML : `<Say>` au nom de l'entreprise, puis `<Hangup/>` |
+| 4 | `twilio:ActionSendMessage` | le SMS : `from = {{1.To}}`, `to = {{1.From}}` |
+
+`dlq: true`, `maxErrors: 10`. Une exécution complète coûte **4 opérations**.
+
+### Le modèle : c'est l'opérateur de l'artisan qui renvoie, pas nous
+
+On ne rappelle pas l'artisan depuis Twilio. Son opérateur envoie vers le
+numéro Twilio les appels qu'il n'a pas pris — trois codes GSM, voir
+`src/lib/renvoi.ts` et l'écran `src/RenvoiAppel.tsx`. **Tout appel qui
+arrive sur ce webhook est donc, par construction, un appel manqué.**
+
+C'est ce qui permet de tenir en quatre opérations. Le modèle inverse — un
+`<Dial>` vers son vrai numéro, puis une deuxième requête portant
+`DialCallStatus` — en coûterait neuf par appel, sur un forfait de mille.
+
+### Aucun secret dans ce blueprint, et c'est délibéré
+
+Le module 3 n'interroge pas la table avec la clé de service. Il appelle
+`artisan_par_numero` (migration `0011`), qui ne rend que `entreprise`,
+`message_sms` et `code` — trois champs que le SMS lui-même porte déjà vers
+un inconnu à chaque appel. La clé employée est la clé **publiable**, celle
+qui est dans le JavaScript de tous les navigateurs.
+
+`Accept: application/vnd.pgrst.object+json`, comme au module 15 de la
+capture : un numéro inconnu rend **406**, l'exécution part en file
+d'attente, Make écrit à Elie. Mieux vaut un échec bruyant qu'un SMS envoyé
+au nom de personne.
+
+### Les deux conversions, et le piège qu'elles désamorcent
+
+**Dans une URL, « + » se lit ESPACE.** Mesuré le 24 septembre, aux deux
+bouts de la chaîne :
+
+| | écrit | lu |
+|---|---|---|
+| lien du SMS | `?t=+33612345678` | ` 33612345678` — numéro abîmé |
+| requête PostgREST | `eq.+33939031234` | 0 ligne, 406 |
+
+Trois réponses, toutes en place :
+
+1. le module 4 écrit le numéro en forme nationale —
+   `replace(1.From; "+33"; "0")` — donc plus de « + » dans le lien, et
+   deux caractères de moins par SMS ;
+2. `src/lib/lien.ts` lit la chaîne de requête sans traduire le « + », pour
+   qu'un appelant étranger arrive quand même entier ;
+3. `numero_canonique` (migration `0011`) ramène `+33…`, `0033…`, `0…` et
+   même la forme au « + » mangé à une seule écriture. **Éprouvé en
+   transaction annulée : les cinq écritures trouvent la même ligne.**
+
+Le nom de l'entreprise part dans du XML, donc il est échappé à la main —
+`&`, `<`, `>` — : Make n'a pas plus de fonction d'échappement XML que JSON,
+et « Martin & Fils » casserait le TwiML.
+
+### CE QUI N'EST PAS VÉRIFIÉ, ET QUI NE PEUT PAS L'ÊTRE ENCORE
+
+À écrire noir sur blanc : **ce scénario n'a jamais tourné.** Ce qui est
+mesuré, c'est la forme des requêtes (en `curl`, hors de Make) et le
+comportement de la migration (en transaction annulée). Ce qui ne l'est pas :
+
+- **l'évaluation des formules par Make** — les `replace` imbriqués, le
+  `{LIEN}` littéral entre accolades simples à l'intérieur d'un `{{ }}` ;
+- **l'encodage du « + » par le module form-urlencoded de Make**. Si Make
+  l'encode mal, `numero_canonique` rattrape — c'est pour ça qu'elle
+  existe — mais ça reste une déduction, pas une mesure ;
+- **`From` porte-t-il bien l'appelant d'origine ?** Sur un renvoi français,
+  l'appelant reste normalement dans `From` et l'artisan passe dans
+  `ForwardedFrom`. Si c'était l'inverse, on enverrait le SMS à l'artisan
+  lui-même. **C'est la première chose à regarder au premier vrai appel.**
+- le délai « moins de 10 secondes » de la case A2.
+
+### Le jour où un numéro sera acheté
+
+1. appliquer la migration `0011` ;
+2. activer le scénario ;
+3. coller l'URL du webhook dans *Voice → A call comes in*, en POST ;
+4. renseigner **Primary handler fails** avec un TwiML Bin statique — sans
+   lui, un échec du scénario fait entendre au prospect le message d'erreur
+   par défaut de Twilio, **en anglais** :
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="fr-FR">Bonjour, je ne peux pas repondre dans l'immediat. Rappelez-moi un peu plus tard, ou laissez-moi un message. A tres vite.</Say>
+  <Hangup/>
+</Response>
+```
+
+5. écrire le numéro dans `artisans.numero_twilio` — les codes de renvoi
+   s'affichent alors tout seuls dans ses Réglages ;
+6. appeler depuis un autre téléphone sans décrocher, et vérifier les quatre
+   points de la section précédente.
 
 ---
 

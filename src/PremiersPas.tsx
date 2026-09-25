@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
+import RenvoiAppel from './RenvoiAppel'
 
 // CE QUE VOIT QUELQU'UN QUI VIENT DE S'INSCRIRE.
 //
@@ -74,20 +75,31 @@ export default function PremiersPas() {
     )
   }
 
+  // Ce titre disait « Tout est en place ». ON N'EN SAIT RIEN : un numéro
+  // attribué ne dit pas que l'opérateur renvoie quoi que ce soit, et le
+  // renvoi vit sur le téléphone de l'artisan, pas dans cette base. La
+  // phrase rassurait un artisan dont aucun appel n'arriverait jamais.
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <h2 className="font-semibold text-slate-900">Tout est en place. Rien à rappeler.</h2>
-      <p className="mt-2 text-sm text-slate-600">
-        Vos appels manqués sur le <strong>{numero}</strong> arrivent ici automatiquement,
-        classés par gravité réelle.
-      </p>
-      {/* Un artisan neuf ne fait pas confiance à un écran vide. On lui donne
-          le moyen de vérifier lui-même, en trente secondes. */}
-      <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200">
-        <strong>Pour en avoir le cœur net :</strong> appelez votre numéro depuis un autre
-        téléphone et ne décrochez pas. Vous devez recevoir un SMS dans les secondes qui
-        suivent, et la demande apparaîtra ici dès que la personne aura rempli le formulaire.
-      </p>
+    <div className="space-y-4">
+      <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <h2 className="font-semibold text-slate-900">Rien à rappeler pour l’instant.</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Vos appels manqués sur le <strong>{numero}</strong> arrivent ici tout seuls,
+          classés par gravité réelle — à une condition : que votre opérateur les renvoie.
+          Cette page ne peut pas le vérifier. Votre téléphone, lui, le sait : tapez{' '}
+          <code className="font-mono font-semibold">*#61#</code>.
+        </p>
+        {/* Un artisan neuf ne fait pas confiance à un écran vide. On lui donne
+            le moyen de vérifier lui-même, en trente secondes. */}
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200">
+          <strong>Pour en avoir le cœur net :</strong> appelez votre numéro depuis un autre
+          téléphone et ne décrochez pas. Vous devez recevoir un SMS dans les secondes qui
+          suivent, et la demande apparaîtra ici dès que la personne aura rempli le
+          formulaire.
+        </p>
+      </div>
+
+      <RenvoiAppel numero={numero} />
     </div>
   )
 }

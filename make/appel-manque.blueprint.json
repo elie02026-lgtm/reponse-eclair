@@ -1,0 +1,144 @@
+{
+  "name": "Appel manqué → SMS",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": { "hook": 3697763, "maxResults": 1 },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "restore": {
+          "parameters": {
+            "hook": { "data": { "editable": "true" }, "label": "Twilio appel manqué" }
+          }
+        },
+        "parameters": [
+          { "name": "hook", "type": "hook:gateway-webhook", "label": "Webhook", "required": true },
+          { "name": "maxResults", "type": "number", "label": "Maximum number of results" }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": true, "useNewZLibDeCompress": true },
+      "mapper": {
+        "ca": "",
+        "qs": [],
+        "url": "https://ysmuqebqqlempkacqfhl.supabase.co/rest/v1/rpc/artisan_par_numero",
+        "gzip": true,
+        "method": "post",
+        "headers": [
+          { "name": "apikey", "value": "sb_publishable_KDR9OHG3FJpR1gL6Jmsp-w_CxkwOZye" },
+          { "name": "Accept", "value": "application/vnd.pgrst.object+json" }
+        ],
+        "timeout": "",
+        "useMtls": false,
+        "authPass": "",
+        "authUser": "",
+        "bodyType": "x_www_form_urlencoded",
+        "formFields": [{ "key": "p_numero", "value": "{{1.To}}" }],
+        "serializeUrl": false,
+        "shareCookies": false,
+        "parseResponse": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "followAllRedirects": false,
+        "rejectUnauthorized": true
+      },
+      "metadata": {
+        "designer": { "x": 300, "y": 0 },
+        "restore": {
+          "expect": {
+            "qs": { "mode": "chose" },
+            "method": { "mode": "chose", "label": "POST" },
+            "headers": { "mode": "chose", "items": [null, null] },
+            "bodyType": { "label": "Application/x-www-form-urlencoded" },
+            "formFields": { "mode": "chose", "items": [null] }
+          }
+        },
+        "parameters": [
+          {
+            "name": "handleErrors",
+            "type": "boolean",
+            "label": "Evaluate all states as errors (except for 2xx and 3xx )",
+            "required": true
+          },
+          { "name": "useNewZLibDeCompress", "type": "hidden" }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "gateway:WebhookRespond",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"fr-FR\">Bonjour, vous etes bien chez {{replace(replace(replace(3.data.entreprise; \"&\"; \"&amp;\"); \"<\"; \"&lt;\"); \">\"; \"&gt;\")}}. Je ne peux pas repondre dans l'immediat. Je vous envoie tout de suite un message : decrivez-y votre besoin, je vous rappelle. A tres vite.</Say>\n  <Hangup/>\n</Response>",
+        "status": "200",
+        "headers": [{ "key": "Content-Type", "value": "text/xml; charset=utf-8" }]
+      },
+      "metadata": {
+        "designer": { "x": 600, "y": 0 },
+        "expect": [
+          { "name": "status", "type": "text", "label": "Status", "required": true },
+          { "name": "body", "type": "text", "label": "Body" },
+          {
+            "name": "headers",
+            "type": "array",
+            "label": "Custom headers",
+            "spec": [
+              { "name": "key", "type": "text", "label": "Key", "required": true },
+              { "name": "value", "type": "text", "label": "Value", "required": true }
+            ]
+          }
+        ],
+        "restore": { "expect": { "headers": { "mode": "chose", "items": [null] } } }
+      }
+    },
+    {
+      "id": 4,
+      "module": "twilio:ActionSendMessage",
+      "version": 1,
+      "parameters": { "account": 8565071 },
+      "mapper": {
+        "from": "{{1.To}}",
+        "to": "{{1.From}}",
+        "body": "{{replace(3.data.message_sms; \"{LIEN}\"; \"https://reponse-eclair.elie02026.workers.dev/formulaire?a=\" + 3.data.code + \"&t=\" + replace(1.From; \"+33\"; \"0\"))}}"
+      },
+      "metadata": {
+        "designer": { "x": 900, "y": 0 },
+        "restore": { "parameters": { "account": { "label": "My Twilio connection" } } },
+        "parameters": [
+          { "name": "account", "type": "account:twilio", "label": "Connection", "required": true }
+        ],
+        "expect": [
+          { "name": "from", "type": "select", "label": "Sender number", "required": true },
+          { "name": "to", "type": "text", "label": "Recipient number", "required": true },
+          { "name": "body", "type": "text", "label": "Message", "required": true }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "designer": { "orphans": [] },
+    "scenario": {
+      "dlq": true,
+      "slots": null,
+      "dataloss": false,
+      "maxErrors": 10,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  },
+  "scheduling": { "type": "immediately" }
+}

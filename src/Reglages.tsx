@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 import { exporterDemandes } from './lib/export'
 import { analyserSms } from './lib/sms'
 import Resiliation from './Resiliation'
+import RenvoiAppel from './RenvoiAppel'
 import type { Artisan } from './types'
 
 // Le calcul du coût d'un SMS vit dans lib/sms.ts : il est pur, donc testé.
@@ -179,8 +180,8 @@ export default function Reglages() {
           </span>
 
           {/* SANS CETTE LIGNE, LE COMPTEUR PASSE POUR CASSÉ. L'artisan écrit
-              107 caractères et lit « 182 facturés ». L'écart, c'est le lien :
-              {'{LIEN}'} s'écrit en six signes et part en quatre-vingts. */}
+              107 caractères et lit « 180 facturés ». L'écart, c'est le lien :
+              {'{LIEN}'} s'écrit en six signes et part en soixante-dix-neuf. */}
           {!sms.lienManquant && (
             <span className="text-xs text-slate-500">
               dont <strong>{sms.longueurLien}</strong> pour l’adresse qui remplacera{' '}
@@ -213,12 +214,15 @@ export default function Reglages() {
           <span className="text-slate-500">Numéro attribué</span>
           <span className="text-slate-700">{artisan.numero_twilio ?? 'aucun'}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-slate-500">Renvoi d’appel</span>
-          <span className="text-slate-700">
-            {artisan.numero_twilio ? 'configuré' : 'non configuré'}
-          </span>
-        </div>
+        {/* IL Y AVAIT ICI « Renvoi d'appel : configuré ». C'ÉTAIT FAUX.
+            La ligne se contentait de regarder si un numéro était attribué —
+            or un numéro attribué ne dit rien du renvoi : celui-ci vit chez
+            l'opérateur de l'artisan, et cette base ne l'a jamais su. Un
+            artisan qui n'avait tapé aucun code lisait donc « configuré », et
+            attendait des appels qui n'arriveraient jamais.
+            On ne peut pas le savoir d'ici. Alors on ne le prétend plus : on
+            donne les codes juste en dessous, et `*#61#` pour que ce soit son
+            téléphone — le seul qui sache — qui réponde à la question. */}
         {/* Le code qui voyagera dans le lien du SMS. Affiché ici parce que
             c'est ce qu'on se lira au téléphone le jour où une demande
             n'arrive pas : « quel code as-tu ? ». Un identifiant invisible
@@ -266,7 +270,9 @@ export default function Reglages() {
       </div>
     </form>
 
-      {/* Hors du <form> : à l'intérieur, son bouton enverrait les réglages. */}
+      {/* Hors du <form> : à l'intérieur, leurs boutons enverraient les réglages. */}
+      <RenvoiAppel numero={artisan.numero_twilio} />
+
       <Resiliation entreprise={entrepriseEnregistree} />
 
       {/* Case D2 : « accessibles ». Un artisan qui a souscrit doit pouvoir
