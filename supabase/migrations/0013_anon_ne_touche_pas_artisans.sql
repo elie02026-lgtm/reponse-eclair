@@ -1,0 +1,75 @@
+-- ════════════════════════════════════════════════════════════════════════
+-- 0013 — `anon` N'A RIEN À FAIRE SUR LA TABLE `artisans`
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- Écrite le 28 septembre 2026. NON APPLIQUÉE : Elie doit lire ce SQL d'abord.
+--
+-- La 0012 a fermé `authenticated` colonne par colonne. `anon`, lui, garde
+-- encore INSERT et UPDATE sur les DIX colonnes, `numero_actif`,
+-- `numero_twilio` et `code` comprises.
+--
+-- ───────────────────────────────────────────────────────────────────────
+-- CE N'EST PAS UN TROU OUVERT — MESURÉ, PAS SUPPOSÉ
+-- ───────────────────────────────────────────────────────────────────────
+-- Le 28 septembre, en transaction annulée, sous le rôle `anon` :
+--
+--   update artisans set numero_actif = true  →  0 ligne touchée
+--   insert artisans (fiche complète)         →  42501
+--
+-- La RLS l'arrête : les trois politiques d'`artisans` comparent toutes à
+-- `auth.uid()`, qui vaut NULL pour `anon`, et `id = NULL` ne vaut jamais
+-- vrai. Personne ne passe.
+--
+-- ───────────────────────────────────────────────────────────────────────
+-- ALORS POURQUOI CETTE MIGRATION
+-- ───────────────────────────────────────────────────────────────────────
+-- Parce que c'est UNE SEULE BARRIÈRE, et que toute la 0012 consiste à dire
+-- qu'une seule barrière ne suffit pas. Le jour où quelqu'un ajoutera une
+-- politique permissive pour `anon` — une page publique, une fonctionnalité
+-- de partage, n'importe quoi — les privilèges de table redeviendront le
+-- seul rempart, et ils sont grands ouverts. On ne veut pas que ce jour-là
+-- dépende de la mémoire de celui qui écrira la politique.
+--
+-- Noter aussi la forme de l'échec mesuré : l'UPDATE ne lève AUCUNE erreur,
+-- il touche zéro ligne. C'est le piège que `src/lib/demandes.ts` documente
+-- déjà pour les demandes. Un privilège retiré, lui, lève 42501 : l'erreur
+-- est bruyante, donc meilleure.
+--
+-- ───────────────────────────────────────────────────────────────────────
+-- CE QUE `anon` PERD, ET POURQUOI ÇA NE CASSE RIEN
+-- ───────────────────────────────────────────────────────────────────────
+-- Vérifié le 28 septembre : les cinq seuls endroits du code client qui
+-- lisent la table `artisans` sont des écrans CONNECTÉS —
+--   Application.tsx, Onboarding.tsx, PremiersPas.tsx, Reglages.tsx (×2).
+--
+-- Les deux pages publiques ne touchent jamais la table :
+--   Formulaire.tsx     → rpc('artisan_public')   (security definer)
+--   Desinscription.tsx → rpc('se_desinscrire')   (security definer)
+--
+-- Une fonction `security definer` s'exécute avec les droits de son
+-- propriétaire : elle lit la table même si l'appelant n'y a aucun droit.
+-- C'est précisément à ça qu'elle sert.
+revoke select, insert, update, delete on public.artisans from anon;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- CE QU'IL FAUT VOIR APRÈS APPLICATION
+-- ═══════════════════════════════════════════════════════════════════════
+--
+--   select grantee, privilege_type, string_agg(column_name, ', ')
+--     from information_schema.column_privileges
+--    where table_schema='public' and table_name='artisans'
+--      and grantee in ('authenticated','anon')
+--      and privilege_type in ('UPDATE','INSERT')
+--    group by grantee, privilege_type;
+--
+-- Attendu : plus AUCUNE ligne pour `anon`, et pour `authenticated` les
+-- cinq colonnes en UPDATE, les six en INSERT.
+--
+-- Et le formulaire public doit continuer de marcher — c'est le témoin qui
+-- compte, parce que c'est lui qu'on risque de casser :
+--
+--   curl -s -X POST '<url>/rest/v1/rpc/artisan_public' \
+--     -H "apikey: <cle publiable>" \
+--     -H 'Content-Type: application/x-www-form-urlencoded' \
+--     --data-urlencode 'p_code=GYZGYQZU'
+--   -- attendu : {"entreprise":"Plomberie Test","metier":"plombier"}
