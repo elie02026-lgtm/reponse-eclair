@@ -64,6 +64,8 @@ export type CodeRenvoi = {
 
 export type Renvoi =
   | { etat: 'sans-numero' }
+  /** Un numéro est réservé, mais personne n'a encore vérifié qu'il sonne. */
+  | { etat: 'en-preparation' }
   | { etat: 'numero-illisible'; brut: string }
   | {
       etat: 'ok'
@@ -80,6 +82,12 @@ export type Renvoi =
 /**
  * Compose les codes à taper pour renvoyer les appels non décrochés.
  *
+ * ON PREND LA FICHE ENTIÈRE, PAS SEULEMENT LE NUMÉRO, et c'est le cœur de
+ * la protection : `numero_actif` est une propriété REQUISE de l'argument,
+ * donc on ne peut pas oublier de la passer. Un booléen positionnel, lui, se
+ * serait oublié au premier appel écrit à la hâte — et un oubli ici affiche
+ * des codes de renvoi vers un numéro qui n'existe pas.
+ *
  * Le numéro est écrit en forme NATIONALE — « 0756123456 » et non
  * « +33756123456 » — parce que l'artisan tape ces dix chiffres sur un
  * clavier téléphonique, debout, une fois. Le « + » demande un appui long
@@ -91,12 +99,20 @@ export type Renvoi =
  * les appels dans le vide. Mieux vaut un écran qui l'avoue.
  */
 export function renvoi(
-  numeroTwilio: string | null | undefined,
+  fiche: { numero_twilio: string | null; numero_actif: boolean },
   delaiSecondes: number = DELAI_DEFAUT,
 ): Renvoi {
+  const numeroTwilio = fiche.numero_twilio
+
   if (numeroTwilio === null || numeroTwilio === undefined || numeroTwilio.trim() === '') {
     return { etat: 'sans-numero' }
   }
+
+  // LE DRAPEAU AVANT TOUT LE RESTE. Un numéro écrit en base ne prouve pas
+  // qu'il sonne : il peut avoir été réservé, saisi à la main, ou repris par
+  // l'opérateur. Tant que personne n'a passé l'appel d'essai, on n'affiche
+  // aucun code — quitte à ne rien afficher du tout.
+  if (!fiche.numero_actif) return { etat: 'en-preparation' }
 
   // Volontairement autonome : on n'accepte QUE la forme internationale
   // « +33… », celle que Twilio écrit en base. `lireTelephone` est plus

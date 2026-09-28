@@ -271,7 +271,7 @@ export default function Reglages() {
     </form>
 
       {/* Hors du <form> : à l'intérieur, leurs boutons enverraient les réglages. */}
-      <RenvoiAppel numero={artisan.numero_twilio} />
+      <RenvoiAppel fiche={artisan} />
 
       <Resiliation entreprise={entrepriseEnregistree} />
 

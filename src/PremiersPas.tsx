@@ -16,21 +16,26 @@ import RenvoiAppel from './RenvoiAppel'
 // une semaine avant de comprendre qu'il manque une étape.
 
 type Etat = 'chargement' | 'sans-numero' | 'pret' | 'inconnu'
+type Fiche = { numero_twilio: string | null; numero_actif: boolean }
 
 export default function PremiersPas() {
   const [etat, setEtat] = useState<Etat>('chargement')
-  const [numero, setNumero] = useState<string | null>(null)
+  const [fiche, setFiche] = useState<Fiche | null>(null)
 
   useEffect(() => {
     // La RLS ne renvoie que sa propre fiche : pas de filtre à écrire.
     supabase
       .from('artisans')
-      .select('numero_twilio')
+      .select('numero_twilio, numero_actif')
       .maybeSingle()
       .then(({ data, error }) => {
         if (error || !data) return setEtat('inconnu')
-        setNumero(data.numero_twilio)
-        setEtat(data.numero_twilio ? 'pret' : 'sans-numero')
+        const f = data as Fiche
+        setFiche(f)
+        // « prêt » exige LES DEUX : un numéro, et la preuve qu'il sonne.
+        // Ne regarder que le numéro, c'était promettre des appels à
+        // quelqu'un qui n'en recevrait jamais.
+        setEtat(f.numero_twilio && f.numero_actif ? 'pret' : 'sans-numero')
       })
   }, [])
 
@@ -38,6 +43,11 @@ export default function PremiersPas() {
 
   // On ne sait pas lire la fiche : on se tait plutôt que d'inventer une
   // consigne. Un mode d'emploi faux est pire qu'une absence de mode d'emploi.
+  //
+  // CE CAS DOIT PASSER AVANT LE GARDE-FOU SUR `fiche`, puisque c'est
+  // précisément celui où la fiche est absente. Je l'avais mis après, et il
+  // devenait inatteignable : l'écran serait resté vide au lieu de dire
+  // quelque chose.
   if (etat === 'inconnu') {
     return (
       <p className="rounded-lg bg-white px-4 py-6 text-center text-slate-500 ring-1 ring-slate-200">
@@ -45,6 +55,11 @@ export default function PremiersPas() {
       </p>
     )
   }
+
+  // Passé ce point, la fiche est forcément là — `sans-numero` et `pret` ne
+  // sont posés qu'après l'avoir reçue. On le montre au lecteur plutôt que
+  // de le lui faire croire avec un `fiche!`.
+  if (!fiche) return null
 
   if (etat === 'sans-numero') {
     return (
@@ -84,7 +99,7 @@ export default function PremiersPas() {
       <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
         <h2 className="font-semibold text-slate-900">Rien à rappeler pour l’instant.</h2>
         <p className="mt-2 text-sm text-slate-600">
-          Vos appels manqués sur le <strong>{numero}</strong> arrivent ici tout seuls,
+          Vos appels manqués sur le <strong>{fiche?.numero_twilio}</strong> arrivent ici tout seuls,
           classés par gravité réelle — à une condition : que votre opérateur les renvoie.
           Cette page ne peut pas le vérifier. Votre téléphone, lui, le sait : tapez{' '}
           <code className="font-mono font-semibold">*#61#</code>.
@@ -99,7 +114,7 @@ export default function PremiersPas() {
         </p>
       </div>
 
-      <RenvoiAppel numero={numero} />
+      <RenvoiAppel fiche={fiche} />
     </div>
   )
 }

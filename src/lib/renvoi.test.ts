@@ -6,8 +6,14 @@ import { renvoi, delaiLegal, DELAI_DEFAUT } from './renvoi.ts'
 
 const NUMERO = '+33756123456'
 
+/** Une fiche dont le numéro a été VÉRIFIÉ. C'est le seul cas où des codes
+ *  s'affichent, et il faut le dire explicitement à chaque appel. */
+function verifie(n: string | null = NUMERO) {
+  return { numero_twilio: n, numero_actif: true }
+}
+
 function ok(n: string | null = NUMERO, d?: number) {
-  const r = d === undefined ? renvoi(n) : renvoi(n, d)
+  const r = d === undefined ? renvoi(verifie(n)) : renvoi(verifie(n), d)
   assert.equal(r.etat, 'ok', `attendu lisible : ${n}`)
   if (r.etat !== 'ok') throw new Error('inatteignable')
   return r
@@ -90,7 +96,7 @@ test('un délai absurde ne fabrique jamais un code absurde', () => {
 
 test('tous les délais légaux produisent un code bien formé', () => {
   for (let d = 5; d <= 30; d += 5) {
-    assert.equal(renvoi(NUMERO, d).etat, 'ok')
+    assert.equal(renvoi(verifie(NUMERO), d).etat, 'ok')
     assert.match(ok(NUMERO, d).activer[0].code, /^\*\*61\*0\d{9}\*11\*\d{1,2}#$/)
   }
 })
@@ -100,8 +106,12 @@ test('tous les délais légaux produisent un code bien formé', () => {
 // ─────────────────────────────────────────────────────────────────────────
 
 test('sans numéro attribué, il n’y a rien à taper — et on le dit', () => {
+  // On construit la fiche à la main : passer `undefined` à `verifie()`
+  // déclencherait sa valeur par défaut, et le test se testerait lui-même.
+  // (C'est arrivé, et c'est le test qui est tombé, pas le code.)
   for (const vide of [null, undefined, '', '   ']) {
-    assert.equal(renvoi(vide).etat, 'sans-numero')
+    const fiche = { numero_twilio: vide as string | null, numero_actif: true }
+    assert.equal(renvoi(fiche).etat, 'sans-numero', JSON.stringify(vide))
   }
 })
 
@@ -110,7 +120,7 @@ test('UN NUMÉRO QU’ON NE SAIT PAS RELIRE NE DONNE PAS UN CODE APPROXIMATIF', 
   // renvoie les appels dans le vide, en annonçant « Service activé ».
   // Un écran qui avoue vaut mieux qu'un renvoi qui ment.
   for (const faux of ['0756123456', '+33 7 56 12 34 56 78', '+1234', 'aucun', '+330612345678']) {
-    const r = renvoi(faux)
+    const r = renvoi(verifie(faux))
     assert.equal(r.etat, 'numero-illisible', `${faux} aurait dû être refusé`)
     assert.equal(r.etat === 'numero-illisible' && r.brut, faux)
   }
@@ -120,14 +130,51 @@ test('on n’accepte QUE la forme que Twilio écrit en base', () => {
   // `lireTelephone` tolère « 0033… » et « 06.12… » : c'est bon pour un
   // humain qui tape, pas pour un numéro écrit par une machine. Ici, une
   // écriture inattendue est une anomalie, pas une variante.
-  assert.equal(renvoi('0033756123456').etat, 'numero-illisible')
-  assert.equal(renvoi('+33756123456').etat, 'ok')
+  assert.equal(renvoi(verifie('0033756123456')).etat, 'numero-illisible')
+  assert.equal(renvoi(verifie('+33756123456')).etat, 'ok')
 })
 
 test('les séparateurs que Twilio n’écrit pas sont tout de même tolérés', () => {
   // Au cas où le numéro soit un jour saisi à la main dans la fiche.
   for (const ecriture of ['+33 756 12 34 56', '+33-756-123-456', '+33 (756) 123456']) {
-    assert.equal(renvoi(ecriture).etat, 'ok', ecriture)
+    assert.equal(renvoi(verifie(ecriture)).etat, 'ok', ecriture)
     assert.equal(ok(ecriture).numero, '0756123456')
   }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// LE DRAPEAU : UN NUMÉRO ÉCRIT EN BASE NE PROUVE PAS QU'IL SONNE
+// ─────────────────────────────────────────────────────────────────────────
+// Le 28 septembre 2026, trois fiches portaient `+33939031234`, qui
+// n'existait chez personne, et l'écran affichait tranquillement
+// `**61*0939031234*11*20#`. Composer ce code envoie ses appels manqués
+// dans le vide ET supprime sa messagerie vocale — l'opérateur répond
+// « Service activé », et rien ne dit le contraire.
+
+test('UN NUMÉRO NON VÉRIFIÉ NE DONNE AUCUN CODE', () => {
+  const r = renvoi({ numero_twilio: NUMERO, numero_actif: false })
+  assert.equal(r.etat, 'en-preparation')
+  // Et surtout : rien qui ressemble à un code ne sort de la fonction.
+  assert.equal('activer' in r, false)
+})
+
+test('le drapeau est regardé AVANT la lisibilité du numéro', () => {
+  // Un numéro illisible ET non vérifié doit rendre « en préparation », pas
+  // « illisible » : on ne fait pas de diagnostic technique sur un numéro
+  // dont personne n'a encore dit qu'il servait.
+  assert.equal(renvoi({ numero_twilio: 'nimporte quoi', numero_actif: false }).etat,
+    'en-preparation')
+})
+
+test('sans numéro du tout, le drapeau ne change rien', () => {
+  for (const actif of [true, false]) {
+    assert.equal(renvoi({ numero_twilio: null, numero_actif: actif }).etat, 'sans-numero')
+  }
+})
+
+test('le même numéro, vérifié ou non, donne deux écrans différents', () => {
+  // Le témoin qui tient les deux bouts : c'est bien le drapeau, et lui
+  // seul, qui décide.
+  assert.equal(renvoi({ numero_twilio: NUMERO, numero_actif: true }).etat, 'ok')
+  assert.equal(renvoi({ numero_twilio: NUMERO, numero_actif: false }).etat, 'en-preparation')
 })

@@ -1,13 +1,10 @@
 import { MENTION_TVA, REGIME_TVA } from './lib/editeur'
 import { PRIX } from './lib/prix'
+import { LIEN_RDV } from './config/offre'
 
 // Page de vente publique (cahier, étape 8 : « Domaine, mentions légales,
 // page de vente », et case E3 : « Une page de vente avec un prix affiché »).
 //
-
-// Où l'on parle à un humain. Le cahier a tranché : un artisan préfère un
-// humain à une IA, et l'appel sert à ça.
-const LIEN_RDV = 'https://cal.com/elie-gywz5w/rdv'
 
 function Bloc({ titre, children }: { titre: string; children: React.ReactNode }) {
   return (

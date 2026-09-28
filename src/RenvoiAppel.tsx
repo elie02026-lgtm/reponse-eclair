@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { renvoi } from './lib/renvoi'
+import { LIEN_RDV } from './config/offre'
 
 // L'ÉCRAN DE LA CASE A1 : « en moins de 5 minutes ».
 //
@@ -19,8 +20,12 @@ import { renvoi } from './lib/renvoi'
 // iPhone. Un bouton qui marche une fois sur deux est pire que pas de
 // bouton : on copie, on colle dans le clavier, ça marche partout.
 
-export default function RenvoiAppel({ numero }: { numero: string | null }) {
-  const r = renvoi(numero)
+export default function RenvoiAppel({
+  fiche,
+}: {
+  fiche: { numero_twilio: string | null; numero_actif: boolean }
+}) {
+  const r = renvoi(fiche)
   const [copie, setCopie] = useState<string | null>(null)
   const [copieImpossible, setCopieImpossible] = useState(false)
 
@@ -41,14 +46,33 @@ export default function RenvoiAppel({ numero }: { numero: string | null }) {
     window.setTimeout(() => setCopie((c) => (c === code ? null : c)), 2000)
   }
 
-  // ── Aucun numéro : rien à faire, et surtout rien à laisser espérer ─────
-  if (r.etat === 'sans-numero') {
+  // ── PAS DE NUMÉRO VÉRIFIÉ : AUCUN CODE, ET ON DIT POURQUOI ────────────
+  //
+  // Les deux états — aucun numéro, ou un numéro pas encore éprouvé — se
+  // ressemblent pour l'artisan : dans les deux cas il n'a rien à taper et
+  // quelqu'un va l'appeler. On les garde distincts DANS LE CODE parce que
+  // la base, elle, sait les distinguer, et qu'un jour on voudra peut-être
+  // dire « votre numéro est le 09 39 … , on le teste demain ». Pour
+  // l'instant, un seul message : deux formulations pour une même situation,
+  // ce serait deux occasions de se contredire.
+  if (r.etat === 'sans-numero' || r.etat === 'en-preparation') {
     return (
       <Encadre>
         <Titre>Renvoi d’appel</Titre>
         <p className="mt-2 text-sm text-slate-600">
-          Aucun numéro ne vous est encore attribué. Tant qu’il n’y en a pas, il n’y a rien
-          à renvoyer : les codes à taper s’afficheront ici dès qu’il apparaîtra.
+          Votre numéro est en cours de préparation. On vous appelle pour l’installer
+          ensemble, ça prend dix minutes.
+        </p>
+        <a
+          href={LIEN_RDV}
+          className="mt-3 block rounded-lg bg-slate-900 px-4 py-3 text-center font-medium text-white hover:bg-slate-800"
+        >
+          Choisir un créneau
+        </a>
+        <p className="mt-2 text-xs text-slate-500">
+          Tant que le numéro n’a pas sonné pour de vrai, nous n’affichons aucun code :
+          un renvoi mal posé fait perdre les appels manqués <em>et</em> la messagerie
+          vocale, sans rien dire.
         </p>
       </Encadre>
     )
@@ -60,8 +84,8 @@ export default function RenvoiAppel({ numero }: { numero: string | null }) {
       <Encadre>
         <Titre>Renvoi d’appel</Titre>
         <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
-          Le numéro enregistré sur votre fiche — <code>{r.brut}</code> — n’a pas la forme
-          attendue. Nous préférons ne pas vous donner de code plutôt qu’un code faux :
+          Le numéro enregistré sur votre fiche — <code>{r.brut}</code> — est marqué comme
+          actif mais n’a pas la forme attendue. Nous préférons ne pas vous donner de code plutôt qu’un code faux :
           un renvoi mal composé ne prévient pas, il envoie vos appels dans le vide.
           Signalez-le-nous.
         </p>

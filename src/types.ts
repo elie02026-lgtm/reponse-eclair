@@ -25,6 +25,18 @@ export type Artisan = {
   zone_minutes: number | null
   message_sms: string
   numero_twilio: string | null
+  // Le numéro a été provisionné ET vérifié PAR NOUS (migration 0012).
+  //
+  // Un numéro présent dans la colonne d'à côté ne prouve rien : le
+  // 28 septembre, trois fiches portaient un numéro qui n'existait chez
+  // personne, et l'écran affichait tranquillement les codes de renvoi
+  // composés dessus. Composer ces codes, c'est envoyer ses appels manqués
+  // dans le vide ET perdre sa messagerie vocale, sans qu'aucun écran ne
+  // prévienne — l'opérateur répond « Service activé ».
+  //
+  // La base refuse `true` sans numéro, et l'artisan ne peut pas l'écrire :
+  // ses droits d'écriture sur cette colonne lui ont été retirés.
+  numero_actif: boolean
   // Identifiant court porté par le lien du SMS (migration 0007). Public,
   // pas secret : il sert d'adresse, pas de clé.
   code: string
