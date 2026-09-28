@@ -7,15 +7,78 @@
   // volontairement, jamais par surprise.
   "compatibility_date": "2026-09-17",
 
-  // Site statique : aucun code serveur, on publie le dossier que Vite fabrique.
+  // LE PREMIER CODE SERVEUR DU PROJET, ajouté le 28 septembre 2026.
+  // Avant lui, ce fichier ne déclarait que des fichiers statiques.
+  "main": "src/worker/index.ts",
+
   "assets": {
     // Produit par `npm run build`. D'où l'obligation de régler
     // "Build command: npm run build" dans Cloudflare — sinon ce dossier n'existe pas.
     "directory": "./dist",
 
     // Application à page unique : toute URL inconnue renvoie index.html,
-    // et c'est React qui décide quoi afficher. Inutile aujourd'hui
-    // (une seule page), indispensable dès qu'on aura plusieurs écrans.
-    "not_found_handling": "single-page-application"
+    // et c'est React qui décide quoi afficher.
+    "not_found_handling": "single-page-application",
+
+    // LA LIGNE QUI PROTÈGE LE SITE DU WORKER, et non l'inverse.
+    //
+    // Mesuré le 28 septembre avec `wrangler dev` : dès qu'un `main` existe,
+    // TOUT ce qui n'est pas un fichier réel part au Worker — y compris
+    // /reglages et /formulaire, et le repli page-unique ne s'applique plus.
+    // En nommant /api/*, on renvoie tout le reste à la couche des assets,
+    // qui continue de servir le site sans qu'on écrive une ligne pour ça.
+    "run_worker_first": ["/api/*"]
+  },
+
+  // ─────────────────────────────────────────────────────────────────────
+  // LES FREINS
+  // ─────────────────────────────────────────────────────────────────────
+  // Binding natif de Cloudflare, disponible sur le forfait gratuit, sans
+  // stockage à provisionner. `period` n'accepte QUE 10 ou 60 secondes.
+  //
+  // Ce ne sont pas des compteurs : la documentation dit que le décompte est
+  // local au centre de données et « intentionally designed to not be used
+  // as an accurate accounting system ». Un attaquant réparti sur vingt
+  // centres obtient vingt fois ces valeurs. Voir README, section Sécurité.
+  "ratelimits": [
+    {
+      // Par adresse. 10 et non 3 : beaucoup de clients d'artisans sont sur
+      // mobile, donc derrière un CGNAT où des centaines d'abonnés partagent
+      // une adresse. Un vrai prospect envoie une demande ; un script en
+      // envoie des milliers, et 10 l'arrête net.
+      "name": "DEBIT_IP",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 }
+    },
+    {
+      // Par artisan. C'est celui qui borne les dégâts quand l'attaquant
+      // change d'adresse mais garde le même code — et le code, il l'a,
+      // puisqu'il voyage dans chaque SMS.
+      "name": "DEBIT_CODE",
+      "namespace_id": "1002",
+      "simple": { "limit": 5, "period": 60 }
+    },
+    {
+      // Plafond de vitesse, toutes demandes confondues.
+      //
+      // NE PAS LE PRENDRE POUR UNE PROTECTION DU QUOTA MAKE. Une capture
+      // complète coûte 8 opérations (relevé dans CHAINE.md) : 60 demandes
+      // par minute font 480 opérations par minute, donc les 1 000 du mois
+      // partent en deux minutes cinq. C'est un frein, pas une digue.
+      // La vraie parade est d'écrire en base AVANT d'appeler Make — case C1
+      // du cahier, à faire plus tard.
+      "name": "DEBIT_GLOBAL",
+      "namespace_id": "1003",
+      "simple": { "limit": 60, "period": 60 }
+    }
+  ],
+
+  // En clair, et c'est correct : ces deux valeurs sont déjà dans le
+  // JavaScript servi à tous les navigateurs. Le SEUL secret de ce Worker
+  // est MAKE_WEBHOOK_CAPTURE, posé par `wrangler secret put` ou le tableau
+  // de bord — jamais ici, jamais dans le dépôt, jamais dans dist/.
+  "vars": {
+    "SUPABASE_URL": "https://ysmuqebqqlempkacqfhl.supabase.co",
+    "SUPABASE_CLE_PUBLIABLE": "sb_publishable_KDR9OHG3FJpR1gL6Jmsp-w_CxkwOZye"
   }
 }

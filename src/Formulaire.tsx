@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { supabase } from './lib/supabase'
 import { lireTelephone } from './lib/telephone'
 import { lireParametre } from './lib/lien'
+import { URGENCES, BORNES } from './lib/demandeRecue'
 
 // LE FORMULAIRE. C'est la seule page que verra le client de l'artisan.
 //
@@ -29,16 +30,24 @@ import { lireParametre } from './lib/lien'
 // par SMS, et exiger une adresse ferait perdre ceux qui n'en ont pas sous
 // la main.
 
-// Le webhook de la chaîne de capture. Publique par nature : n'importe qui
-// peut y poster, comme n'importe qui pouvait poster dans le Tally. Ce qui
-// protège, c'est qu'il faut un code d'artisan valide pour que la demande
-// arrive quelque part — sinon elle finit en orpheline (migration 0009).
-const WEBHOOK = 'https://hook.eu1.make.com/zyfgvw5dfi3x1lfgg6k0ttu52qosst5u'
+// NOTRE PORTE, PLUS CELLE DE MAKE.
+//
+// Cette ligne portait l'URL du webhook Make, en clair, dans le JavaScript
+// servi à tout le monde. N'importe qui pouvait donc poster de fausses
+// demandes au nom de n'importe quel artisan — le code d'artisan voyage dans
+// chaque SMS — et vider les 1 000 opérations mensuelles du forfait gratuit.
+//
+// Le webhook vit désormais en secret du Worker (`src/worker/index.ts`), qui
+// freine, valide et transmet. Il ne reste ici qu'un chemin relatif : même
+// origine, donc aucun CORS, et rien à cacher.
+const ENVOI = '/api/demande'
 
-const URGENCES = ['Oui, c’est urgent', 'Non, ça peut attendre'] as const
+// La liste blanche vit avec les règles de validation : le serveur refuse
+// tout ce qui n'est pas exactement l'un de ces deux libellés, et l'écran
+// doit proposer exactement les mêmes. Deux listes auraient fini par diverger.
 
 type Artisan = { entreprise: string; metier: string }
-type Etat = 'chargement' | 'inconnu' | 'pret' | 'envoi' | 'envoye' | 'panne'
+type Etat = 'chargement' | 'inconnu' | 'pret' | 'envoi' | 'envoye'
 
 export default function Formulaire() {
   // PAS `URLSearchParams` : elle traduit « + » en espace, et le numéro
@@ -65,6 +74,11 @@ export default function Formulaire() {
   const [lieu, setLieu] = useState('')
   const [besoin, setBesoin] = useState('')
   const [urgence, setUrgence] = useState<string>(URGENCES[0])
+  // AUCUNE DEMANDE PERDUE. L'échec ne remplace plus l'écran : le formulaire
+  // reste affiché, tout ce que la personne a tapé est encore là, et elle
+  // n'a qu'à toucher « Envoyer » une seconde fois. Un écran de panne qui
+  // fait disparaître le texte, c'est un texte qu'on ne réécrit pas.
+  const [panne, setPanne] = useState(false)
 
   useEffect(() => {
     if (!code) return
@@ -81,9 +95,10 @@ export default function Formulaire() {
   async function envoyer(e: FormEvent) {
     e.preventDefault()
     setEtat('envoi')
+    setPanne(false)
 
     try {
-      const reponse = await fetch(WEBHOOK, {
+      const reponse = await fetch(ENVOI, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,9 +114,11 @@ export default function Formulaire() {
       if (!reponse.ok) throw new Error(String(reponse.status))
       setEtat('envoye')
     } catch {
-      // On ne dit pas « réessayez » sans dire comment faire autrement : la
-      // personne a un téléphone dans la main et un artisan à joindre.
-      setEtat('panne')
+      // 400, 429, 502, réseau coupé : pour la personne qui a une fuite, la
+      // différence n'a aucun intérêt. On ne lui montre jamais un code, on
+      // lui dit ce qu'elle peut faire — réessayer, ou décrocher.
+      setPanne(true)
+      setEtat('pret')
     }
   }
 
@@ -141,25 +158,6 @@ export default function Formulaire() {
     )
   }
 
-  if (etat === 'panne') {
-    return (
-      <Cadre>
-        <h1 className="text-xl font-bold text-slate-900">L’envoi n’a pas abouti.</h1>
-        <p className="mt-3 text-slate-600">
-          Votre demande n’est pas partie. Le plus sûr maintenant est de rappeler
-          {artisan ? ` ${artisan.entreprise}` : ' l’artisan'} directement.
-        </p>
-        <button
-          type="button"
-          onClick={() => setEtat('pret')}
-          className="mt-4 w-full rounded-lg px-4 py-3 font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100"
-        >
-          Revenir au formulaire
-        </button>
-      </Cadre>
-    )
-  }
-
   const envoi = etat === 'envoi'
 
   return (
@@ -174,9 +172,15 @@ export default function Formulaire() {
         {/* Le seul champ obligatoire, et il est en premier. */}
         <label className="block space-y-1">
           <span className="text-sm font-medium text-slate-700">Que se passe-t-il ?</span>
+          {/* `maxLength` reprend EXACTEMENT la borne du serveur
+              (`lib/demandeRecue.ts`). Le navigateur empêche donc de dépasser,
+              et le refus serveur ne peut plus frapper qu'un appelant qui
+              n'est pas un formulaire. Sans ça, quelqu'un qui écrit beaucoup
+              se ferait refuser après coup, sans comprendre pourquoi. */}
           <textarea
             required
             rows={4}
+            maxLength={BORNES.besoin}
             autoFocus
             value={besoin}
             onChange={(e) => setBesoin(e.target.value)}
@@ -208,6 +212,7 @@ export default function Formulaire() {
             <input
               type="text"
               autoComplete="given-name"
+              maxLength={BORNES.prenom}
               value={prenom}
               onChange={(e) => setPrenom(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
@@ -218,6 +223,7 @@ export default function Formulaire() {
             <input
               type="text"
               autoComplete="address-level2"
+              maxLength={BORNES.lieu}
               value={lieu}
               onChange={(e) => setLieu(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
@@ -245,6 +251,7 @@ export default function Formulaire() {
           <input
             type="email"
             autoComplete="email"
+            maxLength={BORNES.email}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
@@ -253,6 +260,13 @@ export default function Formulaire() {
             Pour recevoir la confirmation. Sans lui, vous serez rappelé quand même.
           </span>
         </label>
+
+        {panne && (
+          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
+            Votre demande n’a pas pu partir. Réessayez, ou rappelez le numéro que vous
+            venez de composer.
+          </p>
+        )}
 
         <button
           type="submit"

@@ -28,6 +28,15 @@ dist-ssr
 *.sln
 *.sw?
 
+# Secrets de `wrangler dev`. Le vrai secret vit chez Cloudflare, posé par
+# `wrangler secret put` ou le tableau de bord — jamais dans le dépôt.
+.dev.vars
+
+# Répertoire de travail de wrangler : cache de build et état local de
+# `wrangler dev`. Recréé à chaque exécution, ne vaut rien, et contient des
+# chemins absolus de la machine.
+.wrangler/
+
 # Fichiers de travail du dossier make/ : les blueprints exportés sont
 # suivis, mais tout intermédiaire (minifié, brouillon) reste dehors. Un
 # blueprint Make contient la clé de service en clair.
