@@ -52,9 +52,38 @@ export default function Connexion() {
     setMessage(null)
 
     if (inscription) {
+      // ─────────────────────────────────────────────────────────────────
+      // OÙ ATTERRIT LE LIEN DE CONFIRMATION — LE 28 SEPTEMBRE, NULLE PART
+      // ─────────────────────────────────────────────────────────────────
+      // Cet appel n'avait pas d'`emailRedirectTo`. Supabase retombe alors
+      // sur la « Site URL » du projet, restée à sa valeur d'usine :
+      // `http://localhost:3000`. Le lien de confirmation renvoyait donc
+      // l'artisan sur ERR_CONNECTION_REFUSED — et même en local, ça n'irait
+      // pas : Vite écoute sur 5173, pas sur 3000.
+      //
+      // C'EST LA CASE B1 QUI TOMBAIT. « Un artisan crée son compte seul,
+      // sans que personne n'intervienne » : personne n'y serait arrivé. Je
+      // la comptais bloquée faute d'inconnu à mettre devant l'écran ; elle
+      // était bloquée pour une raison technique, et on ne l'aurait su qu'en
+      // brûlant le seul inconnu qu'on avait sous la main.
+      //
+      // `window.location.origin` plutôt qu'une constante : le lien suit
+      // l'adresse d'où la personne s'est inscrite. Le site déployé aujourd'hui,
+      // le vrai domaine demain, le serveur de développement quand on teste —
+      // sans rien à changer ici.
+      //
+      // ⚠️ CETTE LIGNE NE SUFFIT PAS. Supabase REFUSE une redirection qui ne
+      // figure pas dans sa liste d'autorisation (Authentication → URL
+      // Configuration) et retombe alors sur la Site URL. Les deux moitiés
+      // doivent être faites, sinon rien ne change.
+      //
+      // Seule entorse assumée à « ne touche à rien qui concerne
+      // l'authentification » : à la demande d'Elie, le 28 septembre, et
+      // limitée à la destination du lien — aucune règle d'accès modifiée.
       const { data, error } = await supabase.auth.signUp({
         email,
         password: motDePasse,
+        options: { emailRedirectTo: window.location.origin },
       })
       if (error) {
         setErreur(enFrancais(error.message))
