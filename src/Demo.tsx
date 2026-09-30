@@ -1,118 +1,25 @@
 import CarteDemande from './CarteDemande'
-import type { Demande } from './types'
+import { LIEN_RDV } from './config/offre'
+import { DEMANDES_DEMO, trier } from './lib/demo'
 
-// Une date relative, recalculée à chaque affichage. La démo ne vieillit donc
-// jamais : elle dira toujours « il y a 12 min », pas « il y a 8 mois ».
-function ilYA(minutes: number): string {
-  return new Date(Date.now() - minutes * 60_000).toISOString()
-}
+// LA PIÈCE MAÎTRESSE DU DISCOURS COMMERCIAL.
+//
+// Ce fichier ne contient plus que de l'affichage. Les quatre demandes et la
+// règle de tri sont dans `lib/demo.ts`, et `lib/demo.test.ts` vérifie
+// mécaniquement que l'ordre par gravité CONTREDIT l'ordre d'arrivée.
+//
+// Ce déplacement vient d'un bug réel : jusqu'au 30 septembre 2026, les deux
+// ordres étaient identiques et la page ne prouvait rien. Personne ne l'avait
+// vu, parce que des données dans un fichier JSX ne peuvent pas être testées —
+// `node --test` retire les types, il ne compile pas le JSX.
+//
+// Les boutons Appeler et Itinéraire restent actifs en démonstration : ils ne
+// touchent pas la base, et ce sont eux qui montrent qu'on agit en un doigt.
+// Les numéros sont dans la plage de fiction de l'ARCEP, aucun téléphone ne
+// sonnera. Le menu de statut, lui, est masqué par la prop `demo` — il
+// n'écrirait nulle part.
 
-// Quatre demandes fictives, typées `Demande` — exactement le type des vraies.
-// C'est volontaire : si le schéma de la base change un jour, TypeScript
-// cassera ICI, et la page de démonstration ne pourra pas se mettre à mentir
-// en silence pendant qu'on montre autre chose aux prospects.
-//
-// Les numéros appartiennent à la plage 06 39 98 xx xx, réservée par l'ARCEP
-// à la fiction : aucun vrai téléphone ne sonnera jamais.
-//
-// L'ORDRE D'ARRIVÉE EST L'INVERSE DE L'ORDRE D'AFFICHAGE, et c'est exprès.
-// Sophie a écrit il y a 5 h, Marc il y a 12 min. Un outil qui trie par date
-// d'arrivée — c'est-à-dire les trois concurrents — mettrait Sophie en haut.
-const DEMANDES: Demande[] = [
-  {
-    id: 1,
-    artisan_id: 'demo',
-    recue_le: ilYA(12),
-    prenom: 'Marc',
-    email: null,
-    telephone: '+33639982140',
-    lieu: 'Marseille 13001',
-    besoin: 'Fuite sous l’évier, ça coule depuis ce matin',
-    urgence_dite: 'Oui, c’est une urgence',
-    photo_url: null,
-    motif: 'fuite sous evier',
-    gravite: 3,
-    panier: 180,
-    distance_min: null,
-    statut: 'a_rappeler',
-    relance_sms_le: null,
-    traite_le: null,
-    montant_signe: null,
-  },
-  {
-    id: 2,
-    artisan_id: 'demo',
-    recue_le: ilYA(62),
-    prenom: 'Karim',
-    email: null,
-    telephone: '+33639980755',
-    lieu: 'Marseille 13005',
-    besoin: 'Plus d’eau chaude depuis hier soir',
-    urgence_dite: 'Oui, c’est une urgence',
-    photo_url: null,
-    motif: 'panne eau chaude',
-    gravite: 2,
-    panier: 450,
-    distance_min: null,
-    statut: 'a_rappeler',
-    relance_sms_le: null,
-    traite_le: null,
-    montant_signe: null,
-  },
-  {
-    id: 3,
-    artisan_id: 'demo',
-    recue_le: ilYA(185),
-    prenom: 'Nadia',
-    email: null,
-    telephone: '+33639986312',
-    lieu: 'Aubagne',
-    besoin: 'Le WC fuit un peu à la base',
-    urgence_dite: 'Oui, c’est une urgence',
-    photo_url: null,
-    motif: 'fuite wc',
-    gravite: 2,
-    panier: 140,
-    distance_min: null,
-    statut: 'a_rappeler',
-    relance_sms_le: null,
-    traite_le: null,
-    montant_signe: null,
-  },
-  {
-    id: 4,
-    artisan_id: 'demo',
-    recue_le: ilYA(303),
-    prenom: 'Sophie',
-    email: null,
-    telephone: '+33639984408',
-    lieu: 'Aix-en-Provence',
-    besoin: 'Je voudrais un devis pour refaire ma salle de bain',
-    urgence_dite: 'Oui, c’est une urgence',
-    photo_url: null,
-    motif: 'devis salle de bain',
-    gravite: 1,
-    panier: 4500,
-    distance_min: null,
-    statut: 'a_rappeler',
-    relance_sms_le: null,
-    traite_le: null,
-    montant_signe: null,
-  },
-]
-
-// LA MÊME RÈGLE QUE L'ÉCRAN RÉEL : gravité décroissante, puis panier
-// décroissant. Jamais la date.
-//
-// Sur le vrai écran ce tri est fait par Postgres (`order by gravite desc,
-// panier desc`), parce que l'index est là et qu'il y aura un jour des
-// milliers de lignes. Ici il n'y en a que quatre et aucune base : on
-// applique la même règle en JavaScript. C'est la seule duplication de la
-// page, et elle est volontaire — une démo qui interrogerait la base ne
-// serait plus une démo.
-const TRIEES = [...DEMANDES].sort(
-  (a, b) => (b.gravite ?? 0) - (a.gravite ?? 0) || (b.panier ?? 0) - (a.panier ?? 0),
-)
+const TRIEES = trier(DEMANDES_DEMO)
 
 export default function Demo() {
   return (
@@ -122,15 +29,60 @@ export default function Demo() {
           Ils ont tous coché « urgent »
         </h1>
         <p className="mt-2 text-slate-600">
-          Quatre demandes reçues ce matin. Votre logiciel les a lues et remises dans
-          l’ordre où il faut rappeler.
+          Quatre demandes arrivées ce matin. Votre logiciel a lu ce qu’ils ont écrit, et
+          les a remises dans l’ordre où il faut rappeler.
         </p>
 
-        <ul className="mt-8 space-y-3">
+        {/* LA PHRASE QUI DÉSAMORCE « vous mettez mon plus gros chantier en
+            dernier ? ». C'est la première objection d'un patron, et elle est
+            légitime : la salle de bain à 4 500 € est en bas, la fuite à 180 €
+            est en haut. La réponse tient en deux propositions, et elle est
+            vraie — un devis qui attend trois jours reste un devis ; une fuite
+            qui attend trois heures devient un dégât des eaux, et le client a
+            appelé quelqu'un d'autre depuis longtemps. */}
+        <p className="mt-4 rounded-lg bg-white px-4 py-3 font-medium text-slate-900 ring-1 ring-slate-200">
+          La salle de bain attendra trois jours sans problème. La fuite, non.
+        </p>
+
+        <ul className="mt-6 space-y-3">
           {TRIEES.map((d) => (
             <CarteDemande key={d.id} demande={d} demo />
           ))}
         </ul>
+
+        {/* CE QUI FAIT QUE LA PAGE PROUVE QUELQUE CHOSE.
+            Sans cette phrase, le visiteur voit une liste et n'a aucune raison
+            de penser qu'un autre outil l'aurait rangée autrement. Les deux
+            heures qui se contredisent sont déjà sous ses yeux, dans les
+            cartes : il suffit de les lui désigner. */}
+        <p className="mt-6 text-sm text-slate-600">
+          Regardez les heures. La fuite est arrivée il y a trois heures, le devis il y a
+          quatre minutes. Un outil qui range par ordre d’arrivée aurait mis le devis en
+          haut, et la fuite en bas.
+        </p>
+
+        {/* La page était un cul-de-sac : on la regardait, et c'était fini.
+            Deux sorties, la plus engageante en premier. */}
+        <div className="mt-10 border-t border-slate-200 pt-8">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Vous voulez le voir sur vos propres appels manqués ?
+          </h2>
+          <p className="mt-2 text-slate-600">
+            Un appel de quinze minutes. On regarde ceux de la semaine dernière ensemble,
+            et vous voyez tout de suite si ça vous sert.
+          </p>
+          <a
+            href={LIEN_RDV}
+            className="mt-4 inline-block rounded-lg bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"
+          >
+            Choisir un créneau
+          </a>
+          <p className="mt-6 text-sm">
+            <a href="/offre" className="text-slate-500 underline hover:text-slate-900">
+              Comment ça marche, et combien ça coûte
+            </a>
+          </p>
+        </div>
       </div>
     </main>
   )
