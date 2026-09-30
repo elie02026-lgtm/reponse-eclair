@@ -43,6 +43,30 @@ que **notre page `/formulaire`** appelle. Tally est sorti de la chaîne le
 23 septembre : le lien du SMS doit porter le code de l'artisan appelé, et
 un Tally ne sait pas rattacher une réponse à un code qu'il ignore.
 
+### DEPUIS LE 30 SEPTEMBRE, LE FORMULAIRE N'APPELLE PLUS CE WEBHOOK
+
+Il poste sur **`/api/demande`**, un Worker Cloudflare (`src/worker/`) qui
+freine, valide, vérifie que l'artisan existe, puis transmet ici. L'URL du
+webhook est un secret du Worker ; elle ne figure plus dans le JavaScript
+public. **La charge utile est identique** : le scénario n'a rien eu à
+changer.
+
+Éprouvée en production le 30 septembre, de bout en bout :
+
+| | |
+|---|---|
+| `POST /api/demande` | **200** `{"ok":true}` en **0,25 s** |
+| ligne en base | id 43, rattachée à Plomberie Aubagne |
+| téléphone | envoyé `06 12 34 56 78`, **stocké `+33612345678`** |
+| code envoyé | `pnpz ka4u` — minuscules et espace, accepté |
+| le client a coché | « Oui, c'est urgent » |
+| l'IA a répondu | **gravité 3**, `fuite chauffe-eau`, 350 €, en **17 s** |
+| exécution Make | statut 1, **7 opérations**, 25 s |
+
+Piège relevé au passage : la gravité arrive **après** la réponse HTTP. En
+interrogeant la base trop vite on lit `null` et on croit à une panne. Ça
+m'est arrivé, et j'ai failli l'écrire.
+
 La charge utile est désormais plate — `{ code, prenom, telephone, email,
 lieu, besoin, urgence_dite }` — donc `{{2.prenom}}` et non plus
 `{{2.data.fields[1].value}}`.
