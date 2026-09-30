@@ -42,6 +42,16 @@ export type Env = {
   /** SECRET — l'URL du webhook de capture chez Make. */
   MAKE_WEBHOOK_CAPTURE: string
 
+  /** SECRET — la clé d'API du webhook Make, envoyée en `x-make-apikey`.
+   *
+   *  `string | undefined` À DESSEIN. Le Worker envoie l'en-tête dès que ce
+   *  secret existe, MÊME SI Make ne l'exige pas encore : Make ignore un
+   *  en-tête dont il n'a que faire. C'est ce qui permet d'activer la clé
+   *  côté Make plus tard, d'un clic, SANS fenêtre pendant laquelle les
+   *  demandes seraient refusées. L'ordre inverse — exiger la clé avant que
+   *  le Worker ne l'envoie — casserait la capture le temps d'un déploiement. */
+  MAKE_CLE?: string
+
   /** var — publique, déjà dans le JavaScript servi aux navigateurs. */
   SUPABASE_URL: string
   /** var — la clé PUBLIABLE, publique par conception. Jamais la clé de

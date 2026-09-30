@@ -135,7 +135,18 @@ const gestionnaire: Gestionnaire = {
     try {
       const r = await fetch(env.MAKE_WEBHOOK_CAPTURE, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          // Envoyée dès que le secret existe, même si Make ne l'exige pas
+          // encore. Voir le commentaire de `MAKE_CLE` : c'est ce qui permet
+          // d'activer la clé côté Make sans casser la capture entre-temps.
+          //
+          // Une fois la clé exigée, l'URL du webhook peut fuir sans
+          // conséquence — et c'est la vraie raison de préférer ça à un
+          // changement d'adresse : l'ancienne URL est dans l'historique git,
+          // donc publique pour toujours.
+          ...(env.MAKE_CLE ? { 'x-make-apikey': env.MAKE_CLE } : {}),
+        },
         body: JSON.stringify(demande),
         signal: AbortSignal.timeout(DELAI_MAKE_MS),
       })
