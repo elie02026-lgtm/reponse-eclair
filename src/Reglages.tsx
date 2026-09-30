@@ -5,6 +5,7 @@ import { exporterDemandes } from './lib/export'
 import { analyserSms } from './lib/sms'
 import Resiliation from './Resiliation'
 import RenvoiAppel from './RenvoiAppel'
+import CompteurGarantie from './CompteurGarantie'
 import type { Artisan } from './types'
 
 // Le calcul du coût d'un SMS vit dans lib/sms.ts : il est pur, donc testé.
@@ -112,6 +113,13 @@ export default function Reglages() {
     <div className="space-y-4">
     <form onSubmit={enregistrer} className="space-y-4">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Réglages</h2>
+
+      {/* EN PREMIER, PARCE QUE C'EST CE QUI L'INQUIÈTE.
+          Tant que la garantie court, la question de l'artisan n'est pas
+          « quel est mon code postal », c'est « est-ce que ça va me rapporter
+          quelque chose ». Le compteur se retire tout seul dès qu'il n'a plus
+          de réponse à donner. */}
+      <CompteurGarantie creeLe={artisan.cree_le} />
 
       <div className="space-y-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
         <label className="block space-y-1">

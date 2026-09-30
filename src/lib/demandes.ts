@@ -69,3 +69,48 @@ export async function enregistrerMontant(
 
   return { demande: data[0] as Demande }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// LA PREMIÈRE LECTURE DE CE FICHIER, ET LA SEULE
+// ─────────────────────────────────────────────────────────────────────────
+// Tout ce qui précède écrit ; ceci lit. C'est ici quand même, parce que le
+// nombre qui en sort n'est pas un chiffre d'affichage : c'est celui que les
+// CGV promettent de compter. Il ne doit exister qu'à un endroit.
+
+/**
+ * Combien de demandes l'artisan connecté a REÇUES, au sens des CGV,
+ * article 5 : « un formulaire envoyé par un client avec un numéro de
+ * téléphone valide ».
+ *
+ * Trois choses à savoir sur ce compte :
+ *
+ *  1. AUCUN FILTRE SUR L'ARTISAN. La RLS ne renvoie que ses lignes. Ajouter
+ *     un `.eq('artisan_id', …)` donnerait le même résultat et ferait croire
+ *     que c'est ce filtre qui protège — alors que c'est la politique.
+ *
+ *  2. `head: true` : Postgres compte, et ne renvoie AUCUNE ligne. Un artisan
+ *     qui a mille demandes ne télécharge pas mille demandes pour voir
+ *     « 5 sur 5 ».
+ *
+ *  3. `telephone is not null` porte la définition contractuelle. Le Worker
+ *     refuse déjà une demande sans numéro lisible (`lib/demandeRecue.ts`),
+ *     donc en pratique aucune ligne n'est exclue — mesuré le 30 septembre
+ *     2026 : 11 lignes, 11 numéros au format `+33…`. Le filtre est là pour
+ *     le jour où quelque chose écrira dans cette table sans passer par la
+ *     porte, pas pour corriger le passé.
+ *
+ * En cas d'erreur on renvoie `null`, jamais `0` : « je ne sais pas » et
+ * « aucune » ne sont pas la même chose quand un contrat en dépend. L'écran
+ * n'affiche rien plutôt que d'annoncer un zéro qu'il n'a pas mesuré.
+ */
+export async function compterDemandes(): Promise<{ total: number | null; erreur?: string }> {
+  const { count, error } = await supabase
+    .from('demandes')
+    .select('id', { count: 'exact', head: true })
+    .not('telephone', 'is', null)
+
+  if (error) return { total: null, erreur: `Comptage impossible : ${error.message}` }
+  if (count === null) return { total: null, erreur: 'Comptage impossible : aucun total rendu.' }
+
+  return { total: count }
+}

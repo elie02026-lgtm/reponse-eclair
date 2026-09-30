@@ -79,8 +79,8 @@ export default function Offre() {
                 {REGIME_TVA === 'assujetti' ? ' HT' : ''} / mois
               </span>
             </div>
-            {/* NE PAS ÉCRIRE « HT » EN FRANCHISE EN BASE. « 29 € HT » fait
-                calculer 34,80 € à un artisan habitué à ajouter la TVA, et on
+            {/* NE PAS ÉCRIRE « HT » EN FRANCHISE EN BASE. « 79 € HT » fait
+                calculer 94,80 € à un artisan habitué à ajouter la TVA, et on
                 perd l'appel sur un prix qu'on ne facture pas. Seuils vérifiés
                 sur service-public : 37 500 € de recettes en prestations de
                 services. Voir lib/editeur.ts. */}

@@ -1,6 +1,7 @@
 import PageLegale, { Bloc, BlocEditeur } from './PageLegale'
 import { MENTION_TVA, REGIME_TVA } from './lib/editeur'
 import { PRIX } from './lib/prix'
+import { JOURS_GARANTIE, NOM_GARANTIE, TEXTE_GARANTIE } from './config/offre'
 
 // CONDITIONS GÉNÉRALES DE VENTE (cahier, case D2 : « mentions légales et
 // CGV accessibles »).
@@ -25,13 +26,22 @@ import { PRIX } from './lib/prix'
 //     de compter les salariés de chaque client, et ça ne coûte rien quand
 //     le service se résilie déjà en un clic.
 //
-//  2. LA CLAUSE SUR L'ESTIMATION DE GRAVITÉ (article 4). C'est celle qui
+//  2. LA GARANTIE 5 DEMANDES (article 5, ajoutée le 30 septembre 2026).
+//     C'est un engagement chiffré sur une chose que l'éditeur ne maîtrise
+//     pas : le nombre d'appels manqués d'un artisan. Le texte est celui
+//     qu'Elie a écrit, importé depuis `config/offre.ts` pour qu'il ne puisse
+//     pas diverger de la page de vente. Deux points restent ouverts et sont
+//     remontés à Elie plutôt que tranchés ici : à quelle date commence la
+//     facturation quand la cinquième demande arrive, et ce qui se passe si
+//     l'artisan interrompt le service avant les soixante jours.
+//
+//  3. LA CLAUSE SUR L'ESTIMATION DE GRAVITÉ (article 4). C'est celle qui
 //     compte vraiment. Le produit contredit le client quand il exagère —
 //     c'est son intérêt — donc il peut aussi le contredire à tort. Il faut
 //     que ce soit écrit avant qu'un artisan manque une vraie urgence, pas
 //     après.
 
-const MAJ = '23 septembre 2026'
+const MAJ = '30 septembre 2026'
 
 export default function Cgv() {
   return (
@@ -98,6 +108,27 @@ export default function Cgv() {
           <strong>{PRIX} € par mois</strong>, sans engagement de durée. Sont compris : le
           numéro, les SMS, le formulaire, les alertes, les relances et l’accès à l’écran.
         </p>
+
+        {/* LA GARANTIE, LUE DEPUIS LA CONSTANTE, PAS RECOPIÉE.
+            `TEXTE_GARANTIE` est aussi ce qu'affiche la page de vente. En
+            l'important au lieu de le retranscrire, on rend impossible le cas
+            où la publicité promet une chose et le contrat une autre — la
+            faute la plus banale, et la plus coûteuse, de ce genre de page. */}
+        <div className="rounded-lg bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+          <p>
+            <strong>{NOM_GARANTIE}.</strong> {TEXTE_GARANTIE}
+          </p>
+          <p className="mt-2">
+            Pour l’application de cette garantie, <strong>une demande</strong> est un
+            formulaire envoyé par un client et comportant un numéro de téléphone valide,
+            au sens du contrôle effectué par le service au moment de la réception. Les{' '}
+            {JOURS_GARANTIE} jours courent à compter de la création du compte.
+          </p>
+          <p className="mt-2">
+            Cette garantie <strong>s’ajoute</strong> au droit de rétractation de
+            l’article 6 ; elle ne le remplace pas.
+          </p>
+        </div>
         {REGIME_TVA === 'franchise' && (
           <p>
             <strong>{MENTION_TVA}.</strong> L’éditeur relève de la franchise en base : il
