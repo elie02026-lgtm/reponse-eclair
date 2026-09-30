@@ -37,6 +37,23 @@ const TAILLE_MAX = 8 * 1024
  *  indéfiniment : il a une fuite d'eau, pas du temps. */
 const DELAI_MAKE_MS = 10_000
 
+/**
+ * Un 502 qui dit OÙ ça a cassé.
+ *
+ * Le 30 septembre, la production a rendu « Service indisponible » et il a
+ * été impossible de savoir, depuis l'extérieur, si c'était Supabase, Make,
+ * ou un secret manquant. Trois pannes très différentes derrière un seul
+ * message. `etape` les sépare — en un mot, sans rien révéler que la page de
+ * confidentialité ne dise déjà.
+ *
+ * Le `console.error` va dans les journaux du Worker : c'est là qu'on
+ * regarde, sans ouvrir Make. Aucune donnée personnelle n'y passe, jamais.
+ */
+function panne(etape: 'base' | 'make', detail: string): Response {
+  console.error(`[/api/demande] echec a l'etape ${etape} : ${detail}`)
+  return json(502, { erreur: 'Service indisponible.', etape })
+}
+
 function json(statut: number, corps: Record<string, unknown>): Response {
   return new Response(JSON.stringify(corps), {
     status: statut,
@@ -122,10 +139,10 @@ const gestionnaire: Gestionnaire = {
         signal: AbortSignal.timeout(DELAI_MAKE_MS),
       })
       connu = r.ok
-    } catch {
+    } catch (e) {
       // La base n'a pas répondu. Ce n'est PAS la faute du client : on rend
       // 502, et le formulaire lui dira de réessayer ou de rappeler.
-      return json(502, { erreur: 'Service indisponible.' })
+      return panne('base', String(e))
     }
     if (!connu) return json(400, { erreur: 'Ce lien n’est plus valable.', champ: 'code' })
 
@@ -150,9 +167,11 @@ const gestionnaire: Gestionnaire = {
         body: JSON.stringify(demande),
         signal: AbortSignal.timeout(DELAI_MAKE_MS),
       })
-      if (!r.ok) return json(502, { erreur: 'Service indisponible.' })
-    } catch {
-      return json(502, { erreur: 'Service indisponible.' })
+      if (!r.ok) return panne('make', `reponse ${r.status}`)
+    } catch (e) {
+      // Cas le plus probable en pratique : le secret MAKE_WEBHOOK_CAPTURE
+      // n'est pas posé, donc `fetch(undefined)` lève. Le message le dira.
+      return panne('make', String(e))
     }
 
     // On ne journalise rien : ni téléphone, ni e-mail, ni description. Les
