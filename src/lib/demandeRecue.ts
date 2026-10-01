@@ -13,6 +13,7 @@
 // inconnu du corps reçu est ignoré, jamais transmis.
 
 import { lireTelephone } from './telephone.ts'
+import { QUESTIONS, reponseValide } from './conseil.ts'
 
 /** Ce que le client a coché. Liste blanche : la valeur part telle quelle
  *  vers l'IA de classification, qui la compare à la description. Un texte
@@ -42,6 +43,11 @@ export type DemandeValide = {
   email: string
   lieu: string
   besoin: string
+  // Les trois réponses à boutons (phase 5.1). `null` quand le client n'a
+  // pas touché la question — ce qui est permis : aucune n'est obligatoire.
+  eau_coule: string | null
+  arrivee_coupee: string | null
+  chauffage_eau_chaude: string | null
   urgence_dite: string
 }
 
@@ -84,12 +90,36 @@ export function validerDemande(brut: unknown): Verdict {
     return invalide('code', 'Le lien ne porte pas un code d’artisan valable.')
   }
 
+  // ── les trois réponses à boutons (phase 5.1) ────────────────────────
+  // Chacune est FACULTATIVE, mais si elle est donnée, elle doit être l'un
+  // des libellés proposés. Du texte libre déguisé en réponse à boutons
+  // ferait prendre des décisions à `lib/conseil.ts` sur une valeur qu'il ne
+  // connaît pas.
+  const reponses: Record<string, string | null> = {}
+  for (const question of QUESTIONS) {
+    const valeur = texte(source, question.nom)
+    if (valeur === '') {
+      reponses[question.nom] = null
+      continue
+    }
+    if (!reponseValide(question.nom, valeur)) {
+      return invalide(question.nom, 'Réponse inattendue à une question.')
+    }
+    reponses[question.nom] = valeur
+  }
+  const aRepondu = QUESTIONS.some((q) => reponses[q.nom] !== null)
+
   // ── besoin ──────────────────────────────────────────────────────────
-  // Obligatoire aujourd'hui. Il deviendra FACULTATIF en phase 5, dès qu'au
-  // moins une réponse à boutons sera donnée : quelqu'un qui a une fuite
-  // doit pouvoir ne rien taper du tout. Ne pas l'oublier ici.
+  // FACULTATIF DEPUIS LA PHASE 5, mais à une condition : qu'au moins une
+  // question à boutons ait reçu une réponse. Quelqu'un qui a dit « l'eau
+  // coule, je n'ai pas coupé » en a dit assez pour être rappelé en premier,
+  // et lui imposer de taper une phrase de plus, debout dans sa cuisine,
+  // c'est le perdre.
+  //
+  // Sans aucune réponse, en revanche, une demande vide n'apprendrait rien à
+  // personne : on redemande la description.
   const besoin = texte(source, 'besoin')
-  if (besoin === '') {
+  if (besoin === '' && !aRepondu) {
     return invalide('besoin', 'Dites en un mot ce qu’il se passe.')
   }
   if (besoin.length > BORNES.besoin) {
@@ -137,6 +167,9 @@ export function validerDemande(brut: unknown): Verdict {
       email,
       lieu,
       besoin,
+      eau_coule: reponses.eau_coule ?? null,
+      arrivee_coupee: reponses.arrivee_coupee ?? null,
+      chauffage_eau_chaude: reponses.chauffage_eau_chaude ?? null,
       urgence_dite: urgence,
     },
   }

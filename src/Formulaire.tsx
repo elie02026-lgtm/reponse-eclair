@@ -4,6 +4,8 @@ import { supabase } from './lib/supabase'
 import { lireTelephone } from './lib/telephone'
 import { lireParametre } from './lib/lien'
 import { URGENCES, BORNES } from './lib/demandeRecue'
+import { QUESTIONS, AUCUNE_REPONSE, auMoinsUneReponse, conseils, accuse } from './lib/conseil'
+import type { Reponses, Reponse, NomQuestion } from './lib/conseil'
 
 // LE FORMULAIRE. C'est la seule page que verra le client de l'artisan.
 //
@@ -42,6 +44,15 @@ import { URGENCES, BORNES } from './lib/demandeRecue'
 // origine, donc aucun CORS, et rien à cacher.
 const ENVOI = '/api/demande'
 
+/** Ce que le client lit sur les boutons. La valeur ENVOYÉE, elle, est celle
+ *  de `lib/conseil.ts` — « je-ne-sais-pas » se stocke mieux qu'une phrase
+ *  avec des espaces et des accents. */
+const LIBELLE_CHOIX: Record<string, string> = {
+  oui: 'Oui',
+  non: 'Non',
+  'je-ne-sais-pas': 'Je ne sais pas',
+}
+
 // La liste blanche vit avec les règles de validation : le serveur refuse
 // tout ce qui n'est pas exactement l'un de ces deux libellés, et l'écran
 // doit proposer exactement les mêmes. Deux listes auraient fini par diverger.
@@ -79,6 +90,8 @@ export default function Formulaire() {
   // n'a qu'à toucher « Envoyer » une seconde fois. Un écran de panne qui
   // fait disparaître le texte, c'est un texte qu'on ne réécrit pas.
   const [panne, setPanne] = useState(false)
+  // Les trois réponses à boutons (phase 5.1). Aucune n'est obligatoire.
+  const [reponses, setReponses] = useState<Reponses>(AUCUNE_REPONSE)
 
   useEffect(() => {
     if (!code) return
@@ -91,6 +104,16 @@ export default function Formulaire() {
         setEtat('pret')
       })
   }, [code])
+
+  // Toucher deux fois le même bouton l'annule : c'est le seul moyen de
+  // revenir en arrière quand on s'est trompé, et aucune des trois questions
+  // n'est obligatoire.
+  function repondre(nom: NomQuestion, choix: Reponse) {
+    setReponses((actuelles) => ({
+      ...actuelles,
+      [nom]: actuelles[nom] === choix ? null : choix,
+    }))
+  }
 
   async function envoyer(e: FormEvent) {
     e.preventDefault()
@@ -109,6 +132,12 @@ export default function Formulaire() {
           lieu: lieu.trim(),
           besoin: besoin.trim(),
           urgence_dite: urgence,
+          // Les trois réponses, sous le nom EXACT qu'attend le serveur et
+          // que portera la colonne en base. Un seul mot pour les trois
+          // endroits : il n'y a rien à traduire, donc rien à se tromper.
+          eau_coule: reponses.eau_coule ?? '',
+          arrivee_coupee: reponses.arrivee_coupee ?? '',
+          chauffage_eau_chaude: reponses.chauffage_eau_chaude ?? '',
         }),
       })
       if (!reponse.ok) throw new Error(String(reponse.status))
@@ -143,22 +172,56 @@ export default function Formulaire() {
     )
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  // LA PAGE QUI DOIT LUI DONNER UNE RAISON DE NE PAS APPELER AILLEURS
+  // ─────────────────────────────────────────────────────────────────────
+  // Un client qui vient d'écrire et qui n'a plus rien à faire qu'attendre
+  // appelle le plombier suivant. Il part dans les trois minutes.
+  //
+  // Elle s'affiche IMMÉDIATEMENT : elle ne peut donc pas attendre la
+  // classification, qui arrive entre dix-sept et vingt secondes plus tard.
+  // Tout ce qu'elle dit vient des trois réponses à boutons, par des règles
+  // déterministes — `lib/conseil.ts` — et d'aucun modèle.
+  //
+  // CE QU'ELLE NE DIT PAS : aucun délai. C'est la RÈGLE D'OR. L'ancienne
+  // version disait « Vous serez rappelé » : un engagement que l'artisan
+  // n'avait pas pris, au nom de l'artisan.
   if (etat === 'envoye') {
+    const blocs = conseils(reponses, artisan?.metier ?? '')
     return (
       <Cadre>
         <h1 className="text-xl font-bold text-slate-900">C’est envoyé.</h1>
-        <p className="mt-3 text-slate-600">
-          {artisan?.entreprise} a reçu votre demande avec votre numéro. Vous serez
-          rappelé.
-        </p>
-        <p className="mt-3 text-sm text-slate-500">
-          Si c’est une urgence et que personne ne vous rappelle, rappelez directement.
+
+        {/* Toujours, quelle que soit la situation. L'entreprise est nommée
+            deux fois à dessein : le client vient d'écrire à un inconnu sur
+            une page qu'il ne connaît pas. */}
+        <p className="mt-3 text-slate-700">{accuse(artisan?.entreprise ?? 'l’artisan')}</p>
+
+        {blocs.map((bloc) => (
+          <div
+            key={bloc.titre}
+            className={`mt-4 rounded-xl px-4 py-3 ring-1 ${
+              bloc.agir
+                ? 'bg-amber-50 text-amber-900 ring-amber-200'
+                : 'bg-slate-50 text-slate-700 ring-slate-200'
+            }`}
+          >
+            <div className="font-semibold">{bloc.titre}</div>
+            <p className="mt-1 text-sm">{bloc.texte}</p>
+          </div>
+        ))}
+
+        {/* La seule chose qu'on puisse promettre sans engager l'artisan :
+            qu'il a bien été prévenu, et qu'il a votre numéro. */}
+        <p className="mt-4 text-sm text-slate-500">
+          Il a votre numéro. Si votre situation s’aggrave, rappelez-le directement.
         </p>
       </Cadre>
     )
   }
 
   const envoi = etat === 'envoi'
+  const aRepondu = auMoinsUneReponse(reponses)
 
   return (
     <Cadre>
@@ -168,24 +231,73 @@ export default function Formulaire() {
         Il n’a pas pu décrocher. Dites-lui ce qu’il vous arrive, il vous rappelle.
       </p>
 
-      <form onSubmit={envoyer} className="mt-5 space-y-4">
-        {/* Le seul champ obligatoire, et il est en premier. */}
+      <form onSubmit={envoyer} className="mt-5 space-y-5">
+        {/* ─────────────────────────────────────────────────────────────
+            TROIS QUESTIONS, TROIS TOUCHERS, AUCUN CLAVIER (phase 5.1)
+            ─────────────────────────────────────────────────────────────
+            Elles passent AVANT la description, et ce n'est pas un détail :
+            le client tape debout, avec une fuite à ses pieds. S'il
+            abandonne après la première, on a déjà ce qui compte le plus —
+            et c'est ce qui permet de lui donner un conseil utile à la page
+            suivante.
+
+            Grandes zones tactiles, texte de 17 px, contraste franc : la
+            cible lit sans lunettes et touche avec un pouce. */}
+        {QUESTIONS.map((question) => (
+          <fieldset key={question.nom}>
+            <legend className="text-base font-medium text-slate-900">{question.texte}</legend>
+            <div className="mt-2 flex gap-2">
+              {question.choix.map((choix) => {
+                const choisi = reponses[question.nom] === choix
+                return (
+                  <button
+                    key={choix}
+                    type="button"
+                    aria-pressed={choisi}
+                    onClick={() => repondre(question.nom, choix)}
+                    className={`flex-1 rounded-xl px-2 py-4 text-base font-medium ring-1 ${
+                      choisi
+                        ? 'bg-slate-900 text-white ring-slate-900'
+                        : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {LIBELLE_CHOIX[choix]}
+                  </button>
+                )
+              })}
+            </div>
+          </fieldset>
+        ))}
+
+        {/* LA DESCRIPTION DEVIENT FACULTATIVE dès qu'une question a reçu une
+            réponse. Elle reste là — quelqu'un qui veut raconter doit
+            pouvoir — mais plus courte, et on le dit. */}
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-slate-700">Que se passe-t-il ?</span>
+          <span className="text-sm font-medium text-slate-700">
+            Que se passe-t-il ?{' '}
+            {aRepondu && <span className="font-normal text-slate-500">(facultatif)</span>}
+          </span>
           {/* `maxLength` reprend EXACTEMENT la borne du serveur
               (`lib/demandeRecue.ts`). Le navigateur empêche donc de dépasser,
               et le refus serveur ne peut plus frapper qu'un appelant qui
               n'est pas un formulaire. Sans ça, quelqu'un qui écrit beaucoup
               se ferait refuser après coup, sans comprendre pourquoi. */}
+          {/* `required` suit EXACTEMENT la règle du serveur : facultatif dès
+              qu'une question a répondu. Deux règles qui divergeraient
+              donneraient un formulaire qui refuse d'être envoyé, ou un
+              serveur qui refuse ce que l'écran acceptait. */}
           <textarea
-            required
-            rows={4}
+            required={!aRepondu}
+            rows={aRepondu ? 2 : 4}
             maxLength={BORNES.besoin}
-            autoFocus
             value={besoin}
             onChange={(e) => setBesoin(e.target.value)}
-            placeholder="Par exemple : une fuite sous l’évier, l’eau coule depuis ce matin."
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
+            placeholder={
+              aRepondu
+                ? 'Ajoutez un détail si vous voulez.'
+                : 'Par exemple : une fuite sous l’évier, l’eau coule depuis ce matin.'
+            }
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base focus:border-slate-900 focus:outline-none"
           />
         </label>
 

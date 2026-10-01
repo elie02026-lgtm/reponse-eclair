@@ -92,7 +92,8 @@ test('un champ qui n’est pas une chaîne est traité comme vide', () => {
 test('les champs inconnus ne ressortent jamais', () => {
   const d = accepte({ artisan_id: 'autre', statut: 'signe', gravite: 3, montant_signe: -1 })
   assert.deepEqual(Object.keys(d).sort(), [
-    'besoin', 'code', 'email', 'lieu', 'prenom', 'telephone', 'urgence_dite',
+    'arrivee_coupee', 'besoin', 'chauffage_eau_chaude', 'code', 'eau_coule',
+    'email', 'lieu', 'prenom', 'telephone', 'urgence_dite',
   ])
 })
 
@@ -150,4 +151,59 @@ test('l’urgence est une liste blanche, pas du texte libre', () => {
   refuse({ urgence_dite: '' }, 'urgence_dite')
   // Piège d'apostrophe : le libellé porte une apostrophe COURBE.
   refuse({ urgence_dite: "Oui, c'est urgent" }, 'urgence_dite')
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// LES TROIS QUESTIONS À BOUTONS (phase 5.1)
+// ─────────────────────────────────────────────────────────────────────────
+
+test('une demande sans aucune réponse ET sans description est refusée', () => {
+  // Elle n'apprendrait rien à personne.
+  refuse({ besoin: '' }, 'besoin')
+})
+
+test('UNE SEULE RÉPONSE REND LA DESCRIPTION FACULTATIVE', () => {
+  // C'est le cœur de la phase 5 : quelqu'un qui a dit « l'eau coule, je n'ai
+  // pas coupé » en a dit assez pour être rappelé en premier. Lui imposer de
+  // taper une phrase de plus, debout dans sa cuisine, c'est le perdre.
+  const d = accepte({ besoin: '', eau_coule: 'oui' })
+  assert.equal(d.besoin, '')
+  assert.equal(d.eau_coule, 'oui')
+})
+
+test('chacune des trois suffit à elle seule', () => {
+  for (const [champ, valeur] of [
+    ['eau_coule', 'non'],
+    ['arrivee_coupee', 'je-ne-sais-pas'],
+    ['chauffage_eau_chaude', 'non'],
+  ]) {
+    assert.equal(accepte({ besoin: '', [champ!]: valeur }).besoin, '', champ)
+  }
+})
+
+test('les réponses non données arrivent à null, pas à vide', () => {
+  // `null` et `''` ne disent pas la même chose en base : l'un veut dire
+  // « il n'a pas répondu », l'autre serait une réponse vide, qui n'existe pas.
+  const d = accepte()
+  assert.equal(d.eau_coule, null)
+  assert.equal(d.arrivee_coupee, null)
+  assert.equal(d.chauffage_eau_chaude, null)
+})
+
+test('une réponse inventée est refusée, champ par champ', () => {
+  refuse({ eau_coule: 'peut-etre' }, 'eau_coule')
+  refuse({ eau_coule: 'OUI' }, 'eau_coule')
+  refuse({ arrivee_coupee: 'bien sûr' }, 'arrivee_coupee')
+  // « je ne sais pas » n'est pas proposé pour la troisième question.
+  refuse({ chauffage_eau_chaude: 'je-ne-sais-pas' }, 'chauffage_eau_chaude')
+})
+
+test('une réponse qui n’est pas une chaîne est traitée comme absente', () => {
+  // `curl` envoie ce qu'il veut. `{"eau_coule": 42}` ne doit pas lever.
+  assert.equal(accepte({ eau_coule: 42 }).eau_coule, null)
+  assert.equal(accepte({ eau_coule: null }).eau_coule, null)
+})
+
+test('une description trop longue reste refusée, même avec des réponses', () => {
+  refuse({ besoin: 'a'.repeat(BORNES.besoin + 1), eau_coule: 'oui' }, 'besoin')
 })
