@@ -6,7 +6,8 @@ import { analyserSms } from './lib/sms'
 import Resiliation from './Resiliation'
 import RenvoiAppel from './RenvoiAppel'
 import CompteurGarantie from './CompteurGarantie'
-import type { Artisan } from './types'
+import { METIERS, LIBELLE_METIER } from './types'
+import type { Artisan, Metier } from './types'
 
 // Le calcul du coût d'un SMS vit dans lib/sms.ts : il est pur, donc testé.
 // Il y était faux ici pendant des semaines — « » et ’ doublaient la facture
@@ -133,15 +134,32 @@ export default function Reglages() {
           />
         </label>
 
+        {/* UNE LISTE, PLUS UN CHAMP LIBRE (phase 4.3).
+            Ce champ sélectionne la grille de gravité appliquée aux demandes :
+            une faute de frappe la cassait silencieusement, et toutes les
+            demandes suivantes étaient mal classées sans qu'aucun écran ne le
+            signale. La base porte la même liste en contrainte. */}
         <label className="block space-y-1">
           <span className="text-sm font-medium text-slate-700">Métier</span>
-          <input
-            type="text"
+          <select
             required
             value={artisan.metier}
             onChange={(e) => champ('metier', e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
-          />
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:border-slate-900 focus:outline-none"
+          >
+            {/* Une valeur enregistrée avant cette liste doit rester visible,
+                sinon le menu afficherait la première option et l'artisan
+                croirait avoir ce métier-là — jusqu'à ce qu'il enregistre et
+                que ce soit vrai. */}
+            {!METIERS.includes(artisan.metier as Metier) && (
+              <option value={artisan.metier}>{artisan.metier} (à mettre à jour)</option>
+            )}
+            {METIERS.map((m) => (
+              <option key={m} value={m}>
+                {LIBELLE_METIER[m]}
+              </option>
+            ))}
+          </select>
           <span className="text-xs text-slate-500">
             Détermine la grille de gravité appliquée à vos demandes.
           </span>

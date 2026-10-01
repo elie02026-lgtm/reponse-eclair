@@ -17,10 +17,34 @@ export const LIBELLE_STATUT: Record<Statut, string> = {
 
 export const STATUTS = Object.keys(LIBELLE_STATUT) as Statut[]
 
+// ─────────────────────────────────────────────────────────────────────────
+// LE MÉTIER — UNE LISTE, PLUS UN CHAMP LIBRE (phase 4.3)
+// ─────────────────────────────────────────────────────────────────────────
+// Ce champ ne décore pas : il SÉLECTIONNE LA GRILLE DE GRAVITÉ appliquée aux
+// demandes. « plombie », « Plombier » ou « plomberie » ne sont pas le même
+// mot pour une machine, et une faute de frappe à l'inscription cassait
+// silencieusement le classement de toutes les demandes suivantes — sans
+// qu'aucun écran ne le dise.
+//
+// Trois valeurs, parce que la cible commerciale en compte trois. La base
+// porte la même liste en contrainte `check` : si l'écran et la base
+// divergeaient un jour, Postgres refuserait l'écriture au lieu de laisser
+// passer une valeur que personne ne sait classer.
+export const METIERS = ['plombier', 'chauffagiste', 'plombier-chauffagiste'] as const
+export type Metier = (typeof METIERS)[number]
+
+/** Ce que l'artisan lit. La clé est la valeur RÉELLEMENT stockée, celle que
+ *  la contrainte `check` impose — même mécanisme que `LIBELLE_STATUT`. */
+export const LIBELLE_METIER: Record<Metier, string> = {
+  plombier: 'Plombier',
+  chauffagiste: 'Chauffagiste',
+  'plombier-chauffagiste': 'Plombier-chauffagiste',
+}
+
 export type Artisan = {
   id: string
   entreprise: string
-  metier: string
+  metier: string // l'une des valeurs de METIERS ; la base l'impose
   code_postal: string
   zone_minutes: number | null
   message_sms: string

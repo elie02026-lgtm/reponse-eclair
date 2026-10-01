@@ -81,7 +81,7 @@ export default function Application({ session }: { session: Session }) {
         {/* Changer d'onglet démonte l'écran précédent : les données sont
             donc rechargées à chaque passage. C'est voulu — un artisan qui
             revient sur sa liste veut l'état réel, pas un cache. */}
-        {ecran === 'a_rappeler' && <ARappeler />}
+        {ecran === 'a_rappeler' && <ARappeler versReglages={() => setEcran('reglages')} />}
         {ecran === 'traitees' && <Traitees />}
         {ecran === 'reglages' && <Reglages />}
       </div>

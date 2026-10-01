@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
-import RenvoiAppel from './RenvoiAppel'
 
 // CE QUE VOIT QUELQU'UN QUI VIENT DE S'INSCRIRE.
 //
@@ -12,13 +11,59 @@ import RenvoiAppel from './RenvoiAppel'
 //
 // Or tant qu'aucun numéro n'est attribué, RIEN N'ARRIVERA JAMAIS. L'écran
 // disait « rien pour l'instant » alors qu'il fallait dire « rien, et rien
-// ne viendra ». La différence entre les deux, c'est un artisan qui attend
-// une semaine avant de comprendre qu'il manque une étape.
+// ne viendra ».
+//
+// ─────────────────────────────────────────────────────────────────────────
+// CE QUI A ÉTÉ RETIRÉ D'ICI LE 1ᵉʳ OCTOBRE 2026, ET POURQUOI
+// ─────────────────────────────────────────────────────────────────────────
+// Cette page affichait une liste numérotée de trois étapes, un paragraphe
+// de vérification, et surtout LES TROIS CODES DE RENVOI EN ENTIER, repris
+// du composant `RenvoiAppel`. Un mur de texte sur un écran qui est censé
+// dire une seule chose : « il n'y a rien, et voilà pourquoi ».
+//
+// Les codes n'ont pas disparu : ils vivent dans les Réglages, où ils ont
+// toujours été, et où l'artisan les retrouvera quand il en aura besoin. Les
+// avoir aux deux endroits, c'était deux textes à tenir d'accord — et le jour
+// où ils divergeraient, l'un des deux ferait perdre des appels.
+//
+// Trois lignes et un bouton. Rien de plus.
 
 type Etat = 'chargement' | 'sans-numero' | 'pret' | 'inconnu'
 type Fiche = { numero_twilio: string | null; numero_actif: boolean }
 
-export default function PremiersPas() {
+/** Le même habillage pour les trois cas : un titre, une phrase, une sortie.
+ *
+ *  LE BOUTON EST UN BOUTON, PAS UN LIEN. Les onglets de l'application
+ *  vivent dans un `useState`, pas dans l'adresse — un `<a href="/reglages">`
+ *  rechargerait tout et retomberait sur l'onglet par défaut, c'est-à-dire
+ *  exactement là d'où l'artisan vient de partir. */
+function Vide({
+  titre,
+  children,
+  bouton,
+}: {
+  titre: string
+  children: React.ReactNode
+  bouton?: { texte: string; action?: () => void }
+}) {
+  return (
+    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <h2 className="font-semibold text-slate-900">{titre}</h2>
+      <p className="mt-2 text-sm text-slate-600">{children}</p>
+      {bouton?.action && (
+        <button
+          type="button"
+          onClick={bouton.action}
+          className="mt-4 block w-full rounded-lg bg-slate-900 px-4 py-3 text-center font-medium text-white hover:bg-slate-800"
+        >
+          {bouton.texte}
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default function PremiersPas({ versReglages }: { versReglages?: () => void }) {
   const [etat, setEtat] = useState<Etat>('chargement')
   const [fiche, setFiche] = useState<Fiche | null>(null)
 
@@ -63,58 +108,29 @@ export default function PremiersPas() {
 
   if (etat === 'sans-numero') {
     return (
-      <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-        <h2 className="font-semibold text-slate-900">Rien ici — et rien ne viendra encore.</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          Vos appels manqués ne peuvent être captés que s’ils sont renvoyés vers un numéro
-          dédié. <strong>Ce numéro ne vous a pas encore été attribué</strong>, donc aucun
-          appel ne peut arriver jusqu’ici.
-        </p>
-        <ol className="mt-4 space-y-2 text-sm text-slate-700">
-          <li>
-            <strong>1.</strong> Un numéro vous est attribué — il apparaîtra dans vos
-            Réglages.
-          </li>
-          <li>
-            <strong>2.</strong> Vous activez le renvoi sur non-réponse depuis votre
-            téléphone. Vous gardez votre numéro habituel.
-          </li>
-          <li>
-            <strong>3.</strong> Le premier appel manqué arrive ici, tout seul.
-          </li>
-        </ol>
-        <p className="mt-4 text-xs text-slate-500">
-          Tant que l’étape 1 n’est pas faite, cet écran restera vide, quoi que vous fassiez.
-        </p>
-      </div>
+      <Vide
+        titre="Rien ici — et rien ne viendra encore."
+        bouton={{ texte: 'Voir où j’en suis', action: versReglages }}
+      >
+        Vos appels manqués ne peuvent arriver que renvoyés vers un numéro dédié, et{' '}
+        <strong>ce numéro ne vous a pas encore été attribué</strong>. Tant que ce n’est pas
+        fait, cet écran restera vide quoi que vous fassiez.
+      </Vide>
     )
   }
 
   // Ce titre disait « Tout est en place ». ON N'EN SAIT RIEN : un numéro
   // attribué ne dit pas que l'opérateur renvoie quoi que ce soit, et le
-  // renvoi vit sur le téléphone de l'artisan, pas dans cette base. La
-  // phrase rassurait un artisan dont aucun appel n'arriverait jamais.
+  // renvoi vit sur le téléphone de l'artisan, pas dans cette base.
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-        <h2 className="font-semibold text-slate-900">Rien à rappeler pour l’instant.</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          Vos appels manqués sur le <strong>{fiche?.numero_twilio}</strong> arrivent ici tout seuls,
-          classés par gravité réelle — à une condition : que votre opérateur les renvoie.
-          Cette page ne peut pas le vérifier. Votre téléphone, lui, le sait : tapez{' '}
-          <code className="font-mono font-semibold">*#61#</code>.
-        </p>
-        {/* Un artisan neuf ne fait pas confiance à un écran vide. On lui donne
-            le moyen de vérifier lui-même, en trente secondes. */}
-        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200">
-          <strong>Pour en avoir le cœur net :</strong> appelez votre numéro depuis un autre
-          téléphone et ne décrochez pas. Vous devez recevoir un SMS dans les secondes qui
-          suivent, et la demande apparaîtra ici dès que la personne aura rempli le
-          formulaire.
-        </p>
-      </div>
-
-      <RenvoiAppel fiche={fiche} />
-    </div>
+    <Vide
+      titre="Rien à rappeler pour l’instant."
+      bouton={{ texte: 'Vérifier mon renvoi d’appel', action: versReglages }}
+    >
+      Vos appels manqués sur le <strong>{fiche.numero_twilio}</strong> arrivent ici tout
+      seuls, classés par gravité réelle — à une condition : que votre opérateur les
+      renvoie. Cette page ne peut pas le vérifier ; votre téléphone, lui, le sait. Tapez{' '}
+      <code className="font-mono font-semibold">*#61#</code>.
+    </Vide>
   )
 }

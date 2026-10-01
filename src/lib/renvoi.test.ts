@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { renvoi, delaiLegal, DELAI_DEFAUT } from './renvoi.ts'
+import { lienComposer, renvoi, delaiLegal, DELAI_DEFAUT } from './renvoi.ts'
 
 // Se lance avec :  node --test
 
@@ -177,4 +177,43 @@ test('le même numéro, vérifié ou non, donne deux écrans différents', () =>
   // seul, qui décide.
   assert.equal(renvoi({ numero_twilio: NUMERO, numero_actif: true }).etat, 'ok')
   assert.equal(renvoi({ numero_twilio: NUMERO, numero_actif: false }).etat, 'en-preparation')
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// LE BOUTON « COMPOSER » (phase 4.4)
+// ─────────────────────────────────────────────────────────────────────────
+
+test('LE DIÈSE DEVIENT %23 — sans quoi le code est tronqué', () => {
+  // C'est tout l'enjeu de cette fonction. Un `#` laissé tel quel est lu
+  // comme une ancre par le navigateur : `tel:**61*06...#` devient
+  // `tel:**61*06...`, le code part incomplet, le renvoi est mal posé, et
+  // les appels se perdent sans qu'aucun écran ne le dise.
+  assert.equal(lienComposer('**67*0612345678#'), 'tel:**67*0612345678%23')
+  assert.equal(lienComposer('##002#'), 'tel:%23%23002%23')
+  assert.equal(lienComposer('*#61#'), 'tel:*%2361%23')
+})
+
+test('les étoiles restent des étoiles', () => {
+  // `encodeURIComponent` laisse `*` intact, et la norme tel: l'accepte.
+  // L'encoder en %2A marcherait aussi, mais rendrait le lien illisible pour
+  // qui le regarde dans la barre d'adresse.
+  assert.ok(lienComposer('**61*0612345678*11*20#').startsWith('tel:**61*'))
+  assert.equal((lienComposer('**61*06*11*20#').match(/\*/g) ?? []).length, 5)
+})
+
+test('tous les codes produits par renvoi() survivent à l’encodage', () => {
+  const r = renvoi({ numero_twilio: '+33612345678', numero_actif: true })
+  assert.equal(r.etat, 'ok')
+  if (r.etat !== 'ok') throw new Error('inatteignable')
+
+  for (const code of [...r.activer.map((c) => c.code), r.verifier, r.annuler]) {
+    const lien = lienComposer(code)
+    assert.ok(lien.startsWith('tel:'), code)
+    // AUCUN dièse nu ne doit subsister après le préfixe.
+    assert.ok(!lien.slice(4).includes('#'), `dièse nu dans ${lien}`)
+    // Et on doit pouvoir retrouver le code d'origine, caractère pour
+    // caractère : un encodage qui perd de l'information serait pire que pas
+    // d'encodage du tout.
+    assert.equal(decodeURIComponent(lien.slice(4)), code)
+  }
 })

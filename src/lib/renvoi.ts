@@ -154,3 +154,38 @@ export function renvoi(
     annuler: '##002#',
   }
 }
+
+/**
+ * Le lien qui ouvre le composeur du téléphone avec le code déjà tapé.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * SUR QUELS TÉLÉPHONES ÇA MARCHE — CE QUE JE SAIS, ET CE QUE JE NE SAIS PAS
+ * ─────────────────────────────────────────────────────────────────────────
+ * JE N'AI PAS PU LE MESURER : il n'y a ni Android ni iPhone sur cette
+ * machine, et aucun émulateur ne reproduit fidèlement le comportement d'un
+ * vrai composeur. Ce qui suit est donc ce que je tiens pour établi, pas ce
+ * que j'ai vérifié. À confirmer sur deux vrais téléphones.
+ *
+ * ANDROID — ouvre très probablement le composeur avec le code inscrit, SANS
+ * l'appeler. Depuis la faille USSD de 2012 — une page web pouvait réinitialiser
+ * un Samsung avec un simple `tel:` — aucun navigateur n'exécute plus un code
+ * de service tout seul. L'artisan devra appuyer sur le bouton d'appel.
+ *
+ * iOS — ne fera probablement RIEN. Apple filtre les caractères `*` et `#`
+ * dans les liens `tel:`, et refuse en général les codes de service. C'est le
+ * comportement qu'Elie soupçonnait, et je le crois exact.
+ *
+ * D'OÙ LA RÈGLE : « Composer » ne remplace jamais « Copier », il s'ajoute à
+ * côté. Et le code reste écrit en toutes lettres au-dessus des deux boutons.
+ * Si le bouton ne fait rien, l'artisan a encore deux façons de s'en sortir —
+ * c'est le minimum pour une fonction dont on ne connaît pas le terrain.
+ *
+ * L'ENCODAGE. `#` doit devenir `%23`, sans quoi le navigateur le prend pour
+ * une ancre et coupe tout ce qui suit : `tel:**61*06...#` deviendrait
+ * `tel:**61*06...` — un code tronqué, donc un renvoi mal posé, donc des
+ * appels perdus en silence. `encodeURIComponent` fait exactement ça, et
+ * laisse `*` intact, ce que la norme `tel:` accepte.
+ */
+export function lienComposer(code: string): string {
+  return `tel:${encodeURIComponent(code)}`
+}

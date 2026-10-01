@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
+import { METIERS, LIBELLE_METIER } from './types'
 import type { Artisan } from './types'
 
 // Le message par défaut, tenu en GSM-7 : pas un seul caractère qui ferait
@@ -110,14 +111,27 @@ export default function Onboarding({
 
           <label className="block space-y-1">
             <span className="text-sm font-medium text-slate-700">Votre métier</span>
-            <input
-              type="text"
+            {/* Une liste, pas un champ libre : ce choix sélectionne la
+                grille de gravité, et une faute de frappe la cassait sans
+                rien dire. La base porte la même liste en contrainte. */}
+            <select
               required
-              placeholder="plombier"
               value={metier}
               onChange={(e) => setMetier(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
-            />
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:border-slate-900 focus:outline-none"
+            >
+              {/* Vide au départ : on ne choisit pas à sa place. Un menu
+                  pré-rempli sur « Plombier » ferait enregistrer ce métier à
+                  un chauffagiste qui n'aurait pas pensé à le changer. */}
+              <option value="" disabled>
+                Choisissez…
+              </option>
+              {METIERS.map((m) => (
+                <option key={m} value={m}>
+                  {LIBELLE_METIER[m]}
+                </option>
+              ))}
+            </select>
             <span className="text-xs text-slate-500">
               Il détermine comment vos demandes sont classées par gravité.
             </span>

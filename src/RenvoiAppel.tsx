@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { renvoi } from './lib/renvoi'
+import { renvoi, lienComposer } from './lib/renvoi'
 import { LIEN_RDV } from './config/offre'
 
 // L'ÉCRAN DE LA CASE A1 : « en moins de 5 minutes ».
@@ -114,16 +114,38 @@ export default function RenvoiAppel({
             <div className="mt-1 break-all font-mono text-lg font-semibold text-slate-900">
               {c.code}
             </div>
-            <button
-              type="button"
-              onClick={() => copier(c.code)}
-              className="mt-2 w-full rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100"
-            >
-              {copie === c.code ? 'Copié' : 'Copier'}
-            </button>
+            {/* DEUX CHEMINS, ET « COPIER » RESTE LE PREMIER.
+                « Composer » ouvre le composeur du téléphone avec le code
+                déjà inscrit — quand le téléphone l'accepte. Sur iOS il ne
+                se passera probablement rien : Apple filtre `*` et `#` dans
+                les liens `tel:`. Je ne l'ai pas mesuré, faute d'appareil ;
+                c'est écrit en toutes lettres dans `lib/renvoi.ts`.
+                D'où la règle : il s'ajoute, il ne remplace pas. Et le code
+                reste écrit au-dessus, lisible et recopiable à la main. */}
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => copier(c.code)}
+                className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100"
+              >
+                {copie === c.code ? 'Copié' : 'Copier'}
+              </button>
+              <a
+                href={lienComposer(c.code)}
+                className="rounded-lg bg-white px-3 py-2 text-center text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100"
+              >
+                Composer
+              </a>
+            </div>
           </li>
         ))}
       </ol>
+
+      <p className="mt-2 text-xs text-slate-500">
+        « Composer » ouvre le clavier du téléphone avec le code déjà écrit — il reste à
+        appuyer sur appeler. Sur iPhone, ce bouton ne fait souvent rien : Apple bloque ce
+        genre de code. Dans ce cas, utilisez « Copier », ou recopiez le code à la main.
+      </p>
 
       {copieImpossible && (
         <p className="mt-2 text-xs text-slate-500">
@@ -155,6 +177,18 @@ export default function RenvoiAppel({
           texte="Efface tous les renvois, votre messagerie vocale revient."
         />
       </div>
+
+      {/* LA SORTIE POUR CELUI QUI NE VEUT PAS LE FAIRE SEUL.
+          Taper six codes de service sur son téléphone n'est pas naturel, et
+          l'artisan visé a cinquante-cinq ans. Lui proposer de le faire
+          ensemble coûte quinze minutes d'appel et sauve l'installation —
+          c'est d'ailleurs ce qu'on vend. */}
+      <a
+        href={LIEN_RDV}
+        className="mt-4 block rounded-lg bg-slate-900 px-4 py-3 text-center font-medium text-white hover:bg-slate-800"
+      >
+        Je préfère qu’on le fasse ensemble
+      </a>
 
       <p className="mt-3 text-xs text-slate-500">
         Le délai avant renvoi est réglé sur <strong>{r.delai} secondes</strong>, soit environ

@@ -7,7 +7,7 @@ import Sante from './Sante'
 import PremiersPas from './PremiersPas'
 import type { Demande, Statut } from './types'
 
-export default function ARappeler() {
+export default function ARappeler({ versReglages }: { versReglages?: () => void }) {
   const [demandes, setDemandes] = useState<Demande[]>([])
   const [erreur, setErreur] = useState<string | null>(null)
   const [chargement, setChargement] = useState(true)
@@ -118,7 +118,7 @@ export default function ARappeler() {
 
       {/* Écran vide : on ne dit plus « rien pour l'instant » à quelqu'un dont
           le numéro n'est pas configuré et pour qui rien ne viendra jamais. */}
-      {!chargement && demandes.length === 0 && <PremiersPas />}
+      {!chargement && demandes.length === 0 && <PremiersPas versReglages={versReglages} />}
 
       {nonClassees.length > 0 && (
         <>
