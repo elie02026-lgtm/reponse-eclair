@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { LIBELLE_STATUT, STATUTS } from './types'
 import { lireTelephone } from './lib/telephone'
+import { graviteEffective, estCorrigee } from './lib/tri'
 import type { Demande, Statut } from './types'
 
 // Depuis combien de temps la demande attend, en français lisible.
@@ -25,16 +26,22 @@ const dateCourte = new Intl.DateTimeFormat('fr-FR', {
   minute: '2-digit',
 })
 
+// LE 0 MANQUAIT, et la migration 0014 l'a rendu atteignable : « Pas si
+// urgent » sur une demande déjà classée 1 descend à 0. Sans cette ligne,
+// l'écran aurait affiché « non classée » pour une demande que l'artisan
+// venait justement de classer — c'est-à-dire le contraire de la vérité.
 const STYLE_GRAVITE: Record<number, string> = {
   3: 'bg-red-50 text-red-800 ring-red-200',
   2: 'bg-amber-50 text-amber-800 ring-amber-200',
   1: 'bg-slate-100 text-slate-600 ring-slate-200',
+  0: 'bg-slate-100 text-slate-500 ring-slate-200',
 }
 
 const SENS_GRAVITE: Record<number, string> = {
   3: 'Dégât en cours ou danger',
   2: 'Panne gênante, sans danger',
   1: 'Projet, pas pressé',
+  0: 'Pas une urgence',
 }
 
 export default function CarteDemande({
@@ -42,6 +49,7 @@ export default function CarteDemande({
   occupee = false,
   onChangerStatut,
   onEnregistrerMontant,
+  onCorriger,
   demo = false,
 }: {
   demande: Demande
@@ -50,6 +58,9 @@ export default function CarteDemande({
   // Saisie du montant réellement facturé. Absent sur l'écran « À rappeler » :
   // une demande qu'on n'a pas encore rappelée n'a rien rapporté.
   onEnregistrerMontant?: (demande: Demande, montant: number) => void
+  // La correction de la gravité estimée (migration 0014). Absente en
+  // démonstration : un visiteur n'écrit nulle part.
+  onCorriger?: (demande: Demande, sens: 'moins' | 'plus') => void
   // `demo` : la carte est montrée à un visiteur, pas à l'artisan propriétaire.
   // Elle masque le menu de statut, qui n'écrirait nulle part de toute façon.
   // Les liens Appeler et Itinéraire, eux, restent actifs : ils ne touchent pas
@@ -97,15 +108,28 @@ export default function CarteDemande({
       )}
 
       {/* L'écart entre ces deux encadrés EST la démonstration du produit :
-          ce que la machine a estimé, face à ce que le client avait coché. */}
+          ce que la machine a estimé, face à ce que le client avait coché.
+
+          Depuis la migration 0014, un troisième avis peut s'ajouter : celui
+          de l'artisan. C'est LUI qui fait foi — il connaît son métier et
+          c'est lui qui rappellera. On continue d'afficher la valeur du
+          modèle à côté, pour qu'il voie ce qu'il a corrigé. */}
       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
         <div
           className={`rounded-lg px-3 py-2 ring-1 ${
-            STYLE_GRAVITE[d.gravite ?? 0] ?? 'bg-slate-100 text-slate-600 ring-slate-200'
+            STYLE_GRAVITE[graviteEffective(d) ?? -1] ?? 'bg-slate-100 text-slate-600 ring-slate-200'
           }`}
         >
-          <div className="font-semibold">Gravité estimée : {d.gravite ?? '?'}/3</div>
-          <div className="opacity-80">{SENS_GRAVITE[d.gravite ?? 0] ?? 'non classée'}</div>
+          <div className="font-semibold">
+            {estCorrigee(d) ? 'Gravité corrigée' : 'Gravité estimée'} :{' '}
+            {graviteEffective(d) ?? '?'}/3
+          </div>
+          <div className="opacity-80">{SENS_GRAVITE[graviteEffective(d) ?? -1] ?? 'non classée'}</div>
+          {estCorrigee(d) && (
+            <div className="mt-1 text-xs opacity-70">
+              Le logiciel avait dit {d.gravite ?? '?'}/3.
+            </div>
+          )}
         </div>
         <div className="rounded-lg bg-slate-50 px-3 py-2 text-slate-600 ring-1 ring-slate-200">
           <div className="font-semibold">Le client a coché</div>
@@ -167,6 +191,33 @@ export default function CarteDemande({
             ))}
           </select>
         </label>
+      )}
+
+      {/* LA CORRECTION DU MODÈLE, migration 0014.
+          Deux boutons plutôt qu'un choix à quatre valeurs : l'artisan
+          corrige en passant, entre deux chantiers, et « un peu moins grave »
+          est une pensée plus naturelle que « gravité 2 ». Les mêmes mots
+          exactement que dans l'e-mail d'alerte — « Pas si urgent » — pour
+          qu'il reconnaisse le geste d'un écran à l'autre. */}
+      {!demo && onCorriger && (
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            disabled={occupee || graviteEffective(d) === 0}
+            onClick={() => onCorriger(d, 'moins')}
+            className="flex-1 rounded-lg px-3 py-3 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100 disabled:opacity-40"
+          >
+            Pas si urgent
+          </button>
+          <button
+            type="button"
+            disabled={occupee || graviteEffective(d) === 3}
+            onClick={() => onCorriger(d, 'plus')}
+            className="flex-1 rounded-lg px-3 py-3 text-sm font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-100 disabled:opacity-40"
+          >
+            Plus urgent
+          </button>
+        </div>
       )}
 
       {/* LE CHIFFRE QU'ON MONTRERA À UN ARTISAN AU BOUT D'UN MOIS.

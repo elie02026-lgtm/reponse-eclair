@@ -1,0 +1,173 @@
+<!--
+  L'ALERTE ENVOYÉE À L'ARTISAN — gabarit à coller dans le module 4 de la
+  chaîne Make (« Integration Webhooks » → route 1 → google-email).
+
+  ───────────────────────────────────────────────────────────────────────────
+  CE QU'IL FAUT REMPLACER
+  ───────────────────────────────────────────────────────────────────────────
+  Chaque repère ci-dessous est en MAJUSCULES entre doubles accolades. Il faut
+  y mettre l'expression Make correspondante. Les numéros de module sont ceux
+  de CHAINE.md.
+
+    {{BASE}}             https://reponse-eclair.elie02026.workers.dev
+                         (en dur ; à changer le jour du vrai domaine)
+    {{ID_DEMANDE}}       l'identifiant rendu par le module 5 (l'insertion)
+    {{JETON_FAIT}}       2.jeton_fait          ← nouveau, envoyé par le Worker
+    {{JETON_PAS_URGENT}} 2.jeton_pas_urgent    ← nouveau, envoyé par le Worker
+    {{PRENOM}}           2.prenom
+    {{TELEPHONE}}        2.telephone           (au format +33…)
+    {{TEL_AFFICHE}}      2.telephone           (ou une version espacée)
+    {{LIEU}}             2.lieu
+    {{BESOIN}}           2.besoin
+    {{URGENCE_DITE}}     2.urgence_dite
+    {{GRAVITE}}          la gravité estimée, 0 à 3
+    {{MOTIF}}            le motif en deux ou trois mots
+
+  LE TROISIÈME CHAMP NOUVEAU, `2.cle_action`, NE VA PAS DANS CET E-MAIL.
+  Il va dans le module 5, la colonne `cle_action` de la table `demandes`.
+  C'est le secret ; les deux jetons n'en sont que des empreintes.
+
+  ───────────────────────────────────────────────────────────────────────────
+  POURQUOI DES TABLEAUX ET DES STYLES EN LIGNE
+  ───────────────────────────────────────────────────────────────────────────
+  Outlook rend le HTML avec le moteur de Word, qui ignore flexbox, grid, et
+  la plupart des feuilles de style. Un tableau et des attributs en ligne, en
+  revanche, marchent partout depuis vingt ans. Ce fichier est laid à lire ;
+  il est lisible sur tous les téléphones, et c'est ce qui compte.
+
+  ───────────────────────────────────────────────────────────────────────────
+  LES BOUTONS D'ACTION
+  ───────────────────────────────────────────────────────────────────────────
+  « C'est fait » et « Pas si urgent » OUVRENT une page qui demande
+  confirmation ; ils n'agissent pas tout seuls. C'est volontaire : certains
+  antivirus de messagerie suivent les liens à la livraison, et un lien qui
+  agirait au premier GET passerait des demandes en « rappelé » sans que
+  l'artisan ait appelé. Voir src/worker/page.ts.
+
+  Chaque lien ne peut faire QUE son opération : le jeton en est dérivé. Celui
+  qui a le lien « c'est fait » ne peut pas en déduire l'autre.
+  Validité : trente jours.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background:#f8fafc;margin:0;padding:16px 0;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+             style="max-width:560px;background:#ffffff;border-radius:14px;
+                    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+                    color:#0f172a;">
+        <tr>
+          <td style="padding:22px 22px 0 22px;">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.06em;
+                        text-transform:uppercase;color:#64748b;">Réponse Éclair</div>
+
+            <!-- L'INFORMATION LA PLUS UTILE EN PREMIER : qui, et quoi.
+                 Un artisan lit cet e-mail debout, sur un chantier. -->
+            <div style="font-size:24px;font-weight:700;margin:6px 0 2px;">
+              {{PRENOM}} — {{MOTIF}}
+            </div>
+            <div style="font-size:15px;color:#475569;">{{LIEU}}</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:16px 22px 0 22px;">
+            <div style="font-size:17px;line-height:1.5;">{{BESOIN}}</div>
+          </td>
+        </tr>
+
+        <!-- L'ÉCART EST LE PRODUIT : ce que la machine a lu, face à ce que
+             le client a coché. -->
+        <tr>
+          <td style="padding:16px 22px 0 22px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td width="50%" valign="top" style="padding-right:5px;">
+                  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;
+                              padding:10px 12px;">
+                    <div style="font-size:13px;font-weight:700;color:#991b1b;">
+                      Gravité estimée : {{GRAVITE}}/3
+                    </div>
+                    <div style="font-size:13px;color:#b91c1c;">d’après ce qu’il a écrit</div>
+                  </div>
+                </td>
+                <td width="50%" valign="top" style="padding-left:5px;">
+                  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
+                              padding:10px 12px;">
+                    <div style="font-size:13px;font-weight:700;color:#334155;">Le client a coché</div>
+                    <div style="font-size:13px;color:#475569;">{{URGENCE_DITE}}</div>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- APPELER : le geste principal, donc le plus gros bouton, seul sur
+             sa ligne. 56 px de haut, pour un pouce et pas une souris. -->
+        <tr>
+          <td style="padding:18px 22px 0 22px;">
+            <a href="tel:{{TELEPHONE}}"
+               style="display:block;background:#0f172a;color:#ffffff;text-decoration:none;
+                      font-size:18px;font-weight:700;text-align:center;
+                      padding:18px 16px;border-radius:12px;">
+              Appeler {{TEL_AFFICHE}}
+            </a>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:10px 22px 0 22px;">
+            <a href="https://www.google.com/maps/dir/?api=1&amp;destination={{LIEU}}"
+               style="display:block;background:#ffffff;color:#0f172a;text-decoration:none;
+                      border:1px solid #cbd5e1;font-size:16px;font-weight:600;text-align:center;
+                      padding:15px 16px;border-radius:12px;">
+              Itinéraire
+            </a>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:20px 22px 0 22px;">
+            <div style="border-top:1px solid #e2e8f0;padding-top:16px;
+                        font-size:14px;color:#64748b;">
+              Quand c’est réglé, touchez un de ces boutons. Pas besoin de vous connecter.
+            </div>
+          </td>
+        </tr>
+
+        <!-- LES DEUX ACTIONS SANS CONNEXION -->
+        <tr>
+          <td style="padding:10px 22px 0 22px;">
+            <a href="{{BASE}}/agir?d={{ID_DEMANDE}}&amp;j={{JETON_FAIT}}&amp;op=fait"
+               style="display:block;background:#15803d;color:#ffffff;text-decoration:none;
+                      font-size:17px;font-weight:700;text-align:center;
+                      padding:17px 16px;border-radius:12px;">
+              C’est fait
+            </a>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:10px 22px 0 22px;">
+            <a href="{{BASE}}/agir?d={{ID_DEMANDE}}&amp;j={{JETON_PAS_URGENT}}&amp;op=pas_urgent"
+               style="display:block;background:#ffffff;color:#0f172a;text-decoration:none;
+                      border:1px solid #cbd5e1;font-size:16px;font-weight:600;text-align:center;
+                      padding:15px 16px;border-radius:12px;">
+              Pas si urgent
+            </a>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:18px 22px 22px 22px;">
+            <div style="font-size:13px;color:#94a3b8;line-height:1.5;">
+              Ces deux boutons sont valables trente jours.
+              <a href="{{BASE}}/" style="color:#64748b;">Ouvrir mon écran</a>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

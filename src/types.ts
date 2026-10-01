@@ -64,4 +64,21 @@ export type Demande = {
   // Montant RÉELLEMENT facturé, saisi par l'artisan. Ne jamais le
   // confondre avec `panier`, qui est l'estimation de l'IA.
   montant_signe: number | null
+
+  // ─── Migration 0014 : agir depuis l'e-mail, et corriger le modèle ───
+  //
+  // La correction de l'artisan. `gravite` garde TOUJOURS la valeur du
+  // modèle : l'écart entre les deux est la donnée qui dira, dans six mois,
+  // si la classification est juste. Le tri lit `lib/tri.ts`.
+  //
+  // La base refuse l'une sans l'autre (contrainte `demandes_correction_datee`)
+  // et borne la gravité entre 0 et 3.
+  gravite_corrigee: number | null
+  corrigee_le: string | null
+
+  // Le secret qui autorise les boutons de l'e-mail d'alerte. L'artisan peut
+  // le lire — c'est le sien — mais il ne peut PAS l'écrire : la migration
+  // 0014 lui a retiré ce droit colonne par colonne. Il n'apparaît jamais
+  // dans l'export : `lib/csv.ts` nomme ses colonnes une à une.
+  cle_action: string | null
 }

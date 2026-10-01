@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
-import { changerStatut } from './lib/demandes'
+import { changerStatut, corrigerGravite } from './lib/demandes'
+import { trier, graviteEffective } from './lib/tri'
 import CarteDemande from './CarteDemande'
 import Sante from './Sante'
 import PremiersPas from './PremiersPas'
@@ -13,11 +14,18 @@ export default function ARappeler() {
   const [enCours, setEnCours] = useState<number | null>(null)
 
   useEffect(() => {
-    // LA RÈGLE DE TRI, QUI EST LE PRODUIT : gravité d'abord, panier ensuite.
-    // Jamais la date — l'ordre chronologique est ce que font les trois concurrents.
+    // LE TRI N'EST PLUS FAIT EN BASE, depuis la migration 0014.
     //
-    // Le tri est exécuté en base : l'index (artisan_id, statut, gravite desc,
-    // panier desc) créé dans la migration est fait exactement pour cette requête.
+    // Il doit maintenant lire `gravite_corrigee` quand elle existe, `gravite`
+    // sinon. Or PostgREST ne sait pas trier sur une expression : `order=
+    // gravite.desc` existe, `order=coalesce(...)` non. Les deux solutions
+    // étaient une colonne générée — donc une migration de plus — ou le tri
+    // dans le navigateur. Un artisan a quelques dizaines de demandes à
+    // rappeler, pas des dizaines de milliers.
+    //
+    // Le gain n'est pas que technique : la règle vit désormais dans
+    // `lib/tri.ts`, et c'est EXACTEMENT celle qu'applique la page de
+    // démonstration. Les deux ne peuvent plus diverger.
     //
     // Note : on ne filtre PAS sur artisan_id. Ce n'est pas un oubli.
     // La politique RLS s'en charge en base.
@@ -25,11 +33,9 @@ export default function ARappeler() {
       .from('demandes')
       .select('*')
       .eq('statut', 'a_rappeler')
-      .order('gravite', { ascending: false })
-      .order('panier', { ascending: false })
       .then(({ data, error }) => {
         if (error) setErreur(error.message)
-        else setDemandes(data ?? [])
+        else setDemandes(trier(data ?? []))
         setChargement(false)
       })
   }, [])
@@ -49,6 +55,25 @@ export default function ARappeler() {
     setDemandes((actuelles) => actuelles.filter((x) => x.id !== d.id))
   }
 
+  // CORRIGER LA GRAVITÉ, ET RETRIER AUSSITÔT.
+  // La carte change de place sous le doigt de l'artisan, et c'est voulu :
+  // c'est la preuve visible que sa correction a servi à quelque chose.
+  async function corriger(d: Demande, sens: 'moins' | 'plus') {
+    setEnCours(d.id)
+    setErreur(null)
+
+    const resultat = await corrigerGravite(d, sens)
+    setEnCours(null)
+
+    if (resultat.erreur || !resultat.demande) {
+      setErreur(resultat.erreur ?? 'La correction n’a pas abouti.')
+      return
+    }
+
+    const corrigee = resultat.demande
+    setDemandes((actuelles) => trier(actuelles.map((x) => (x.id === corrigee.id ? corrigee : x))))
+  }
+
   // LA SECTION QUE LES TROIS CONCURRENTS N'ONT PAS.
   // Une demande relancée qui est TOUJOURS "à rappeler" est une demande dont
   // le prospect n'a pas donné suite. Chez Rappli, LockLead et Repondeo, ces
@@ -62,8 +87,10 @@ export default function ARappeler() {
   // On ne la fait pas redescendre pour autant : la cacher au fond serait la
   // perdre. On la sort du classement et on dit pourquoi. La machine n'a pas
   // su juger ; elle le déclare au lieu de faire semblant.
-  const nonClassees = demandes.filter((d) => d.gravite === null)
-  const classees = demandes.filter((d) => d.gravite !== null)
+  // `graviteEffective` et non `gravite` : une demande que le modèle n'a pas
+  // su classer mais que l'artisan a jugée lui-même N'EST PLUS non classée.
+  const nonClassees = demandes.filter((d) => graviteEffective(d) === null)
+  const classees = demandes.filter((d) => graviteEffective(d) !== null)
   const sansReponse = classees.filter((d) => d.relance_sms_le !== null)
   const nouvelles = classees.filter((d) => d.relance_sms_le === null)
 
@@ -73,6 +100,7 @@ export default function ARappeler() {
       demande={d}
       occupee={enCours === d.id}
       onChangerStatut={modifier}
+      onCorriger={corriger}
     />
   )
 

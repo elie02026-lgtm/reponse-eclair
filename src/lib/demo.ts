@@ -74,6 +74,9 @@ export const DEMANDES_DEMO: Demande[] = [
     relance_sms_le: null,
     traite_le: null,
     montant_signe: null,
+    gravite_corrigee: null,
+    corrigee_le: null,
+    cle_action: null,
   },
   {
     id: 2,
@@ -94,6 +97,9 @@ export const DEMANDES_DEMO: Demande[] = [
     relance_sms_le: null,
     traite_le: null,
     montant_signe: null,
+    gravite_corrigee: null,
+    corrigee_le: null,
+    cle_action: null,
   },
   {
     id: 3,
@@ -114,6 +120,9 @@ export const DEMANDES_DEMO: Demande[] = [
     relance_sms_le: null,
     traite_le: null,
     montant_signe: null,
+    gravite_corrigee: null,
+    corrigee_le: null,
+    cle_action: null,
   },
   {
     id: 4,
@@ -134,26 +143,14 @@ export const DEMANDES_DEMO: Demande[] = [
     relance_sms_le: null,
     traite_le: null,
     montant_signe: null,
+    gravite_corrigee: null,
+    corrigee_le: null,
+    cle_action: null,
   },
 ]
 
-/**
- * LA MÊME RÈGLE QUE L'ÉCRAN RÉEL : gravité décroissante, puis panier
- * décroissant. Jamais la date.
- *
- * Sur le vrai écran ce tri est fait par Postgres (`order by gravite desc,
- * panier desc`), parce que l'index est là et qu'il y aura un jour des
- * milliers de lignes. Ici il n'y a que quatre lignes et aucune base : on
- * applique la même règle en JavaScript. C'est la seule duplication de la
- * démonstration, et elle est volontaire — une démo qui interrogerait la base
- * ne serait plus une démo.
- *
- * `sort` modifie le tableau qu'on lui donne : on copie d'abord, sinon
- * l'ordre d'arrivée — qui est la moitié de la démonstration — disparaîtrait
- * au premier appel.
- */
-export function trier(demandes: Demande[]): Demande[] {
-  return [...demandes].sort(
-    (a, b) => (b.gravite ?? 0) - (a.gravite ?? 0) || (b.panier ?? 0) - (a.panier ?? 0),
-  )
-}
+// LE TRI N'EST PLUS ICI. Il vit dans `lib/tri.ts`, et c'est le MÊME que
+// celui des écrans réels — c'était tout l'objet du déplacement, le
+// 1ᵉʳ octobre 2026 : une démonstration qui trierait autrement que le produit
+// montrerait aux prospects un classement qui n'existe pas.
+export { trier } from './tri.ts'

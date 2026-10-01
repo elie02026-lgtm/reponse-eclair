@@ -27,7 +27,21 @@
 // s'applique plus. C'est l'inverse de ce que j'avais d'abord annoncé.
 
 import { validerDemande } from '../lib/demandeRecue.ts'
+import {
+  estOperation,
+  jetonPour,
+  jetonValide,
+  lireIdDemande,
+  nouvelleCleAction,
+  reponseDe,
+} from '../lib/action.ts'
+import { pageConfirmation, pageLienIllisible, pageResultat } from './page.ts'
 import type { Gestionnaire } from './types.ts'
+
+/** Le chemin des boutons de l'e-mail d'alerte. Déclaré dans
+ *  `wrangler.jsonc` sous `run_worker_first` : sans ça, la couche des
+ *  fichiers statiques le servirait et le Worker ne le verrait jamais. */
+const CHEMIN_ACTION = '/agir'
 
 /** 8 Ko. Une description de 2 000 caractères et six champs courts tiennent
  *  très largement dedans ; au-delà, c'est qu'on n'est plus un formulaire. */
@@ -61,6 +75,52 @@ function json(statut: number, corps: Record<string, unknown>): Response {
   })
 }
 
+/** Une page HTML. `no-store` parce qu'un lien d'action ne doit être gardé
+ *  ni par le navigateur, ni par un cache intermédiaire : il porte un jeton. */
+function html(statut: number, corps: string): Response {
+  return new Response(corps, {
+    status: statut,
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store',
+      // Le jeton est dans l'URL. Sans ceci, il partirait en `Referer` vers
+      // le premier site externe que l'artisan ouvrirait depuis cette page.
+      'referrer-policy': 'no-referrer',
+    },
+  })
+}
+
+/**
+ * Appelle `agir_sur_demande` (migration 0014) et rend le mot qu'elle
+ * retourne. La fonction est `security definer` et n'est accordée qu'à
+ * `anon` : la clé publiable suffit, et le Worker n'a aucun droit sur la
+ * table `demandes` — vérifié le 1ᵉʳ octobre, contrôles D1 et D2.
+ */
+async function agir(
+  env: { SUPABASE_URL: string; SUPABASE_CLE_PUBLIABLE: string },
+  id: number,
+  jeton: string,
+  operation: string,
+): Promise<string> {
+  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/agir_sur_demande`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_CLE_PUBLIABLE,
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ p_id: id, p_jeton: jeton, p_operation: operation }),
+    signal: AbortSignal.timeout(DELAI_MAKE_MS),
+  })
+  if (!r.ok) {
+    console.error(`[${CHEMIN_ACTION}] base en erreur : ${r.status}`)
+    return 'panne'
+  }
+  // La fonction rend un `text`, que PostgREST encode en JSON : `"ok"`.
+  const mot: unknown = await r.json()
+  return typeof mot === 'string' ? mot : 'panne'
+}
+
 // AUCUN en-tête CORS, et ce n'est pas un oubli. Le formulaire est servi par
 // la même origine, il n'en a pas besoin. Leur absence empêche la page d'un
 // autre site d'appeler cet endpoint depuis un navigateur — mais elle
@@ -70,6 +130,45 @@ function json(statut: number, corps: Record<string, unknown>): Response {
 const gestionnaire: Gestionnaire = {
   async fetch(requete, env) {
     const url = new URL(requete.url)
+
+    // ── LES BOUTONS DE L'E-MAIL D'ALERTE ────────────────────────────────
+    // GET n'affiche que le bouton ; seul POST agit. Un antivirus de
+    // messagerie suit les liens, il ne remplit pas les formulaires — voir
+    // le long commentaire de `page.ts`.
+    if (url.pathname === CHEMIN_ACTION) {
+      if (requete.method === 'GET') {
+        const id = lireIdDemande(url.searchParams.get('d') ?? '')
+        const jeton = url.searchParams.get('j') ?? ''
+        const op = url.searchParams.get('op') ?? ''
+        if (id === null || !jetonValide(jeton) || !estOperation(op)) {
+          return html(400, pageLienIllisible())
+        }
+        return html(200, pageConfirmation(CHEMIN_ACTION, id, jeton, op))
+      }
+
+      if (requete.method === 'POST') {
+        // Le frein par adresse s'applique ICI AUSSI. Sans lui, cette porte
+        // serait un oracle : on pourrait essayer des jetons en boucle.
+        // Dix par minute contre 2^256 possibilités, l'affaire est close.
+        const ip = requete.headers.get('CF-Connecting-IP') ?? 'inconnue'
+        if (!(await env.DEBIT_IP.limit({ key: ip }))?.success) {
+          return html(429, pageResultat(reponseDe('panne')))
+        }
+
+        const formulaire = await requete.formData()
+        const id = lireIdDemande(String(formulaire.get('d') ?? ''))
+        const jeton = String(formulaire.get('j') ?? '')
+        const op = String(formulaire.get('op') ?? '')
+        if (id === null || !jetonValide(jeton) || !estOperation(op)) {
+          return html(400, pageLienIllisible())
+        }
+
+        const mot = await agir(env, id, jeton, op)
+        return html(mot === 'ok' ? 200 : 400, pageResultat(reponseDe(mot)))
+      }
+
+      return html(405, pageLienIllisible())
+    }
 
     if (url.pathname !== '/api/demande') return json(404, { erreur: 'Inconnu.' })
     if (requete.method !== 'POST') return json(405, { erreur: 'Méthode refusée.' })
@@ -146,9 +245,30 @@ const gestionnaire: Gestionnaire = {
     }
     if (!connu) return json(400, { erreur: 'Ce lien n’est plus valable.', champ: 'code' })
 
-    // ── 7. Make ─────────────────────────────────────────────────────────
-    // Charge utile IDENTIQUE à celle que le formulaire envoyait : le
-    // scénario de capture n'a rien à changer, sauf son adresse de webhook.
+    // ── 7. LES CLÉS DES BOUTONS DE L'E-MAIL ─────────────────────────────
+    // Fabriquées ICI, au dernier moment, et pour une seule raison : c'est le
+    // seul endroit de la chaîne où l'on peut tirer de l'aléa sans mettre un
+    // secret dans Make. Make ne calcule rien — il recopie trois chaînes.
+    //
+    // `cle_action` est enregistrée en base (module 5 du scénario).
+    // Les deux jetons ne sont stockés NULLE PART : ils partent dans
+    // l'e-mail, et Postgres les recalcule à chaque clic depuis `cle_action`.
+    //
+    // Celui qui détient un lien ne peut pas en déduire l'autre : il lui
+    // faudrait `cle_action`, qui ne quitte jamais la base.
+    const cleAction = nouvelleCleAction()
+    const avecCles = {
+      ...demande,
+      cle_action: cleAction,
+      jeton_fait: await jetonPour(cleAction, 'fait'),
+      jeton_pas_urgent: await jetonPour(cleAction, 'pas_urgent'),
+    }
+
+    // ── 8. Make ─────────────────────────────────────────────────────────
+    // Trois champs de plus qu'avant, et rien d'autre de changé. Le scénario
+    // doit enregistrer `cle_action` et poser les deux jetons dans les liens
+    // de l'e-mail ; tant qu'il ne le fait pas, ces champs sont ignorés sans
+    // dommage — la capture continue de marcher exactement comme avant.
     try {
       const r = await fetch(env.MAKE_WEBHOOK_CAPTURE, {
         method: 'POST',
@@ -164,7 +284,7 @@ const gestionnaire: Gestionnaire = {
           // donc publique pour toujours.
           ...(env.MAKE_CLE ? { 'x-make-apikey': env.MAKE_CLE } : {}),
         },
-        body: JSON.stringify(demande),
+        body: JSON.stringify(avecCles),
         signal: AbortSignal.timeout(DELAI_MAKE_MS),
       })
       if (!r.ok) return panne('make', `reponse ${r.status}`)

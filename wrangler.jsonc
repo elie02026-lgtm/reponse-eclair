@@ -27,7 +27,14 @@
     // /reglages et /formulaire, et le repli page-unique ne s'applique plus.
     // En nommant /api/*, on renvoie tout le reste à la couche des assets,
     // qui continue de servir le site sans qu'on écrive une ligne pour ça.
-    "run_worker_first": ["/api/*"]
+    //
+    // /agir est nommé ici depuis le 1er octobre : ce sont les boutons de
+    // l'e-mail d'alerte, servis en HTML nu par le Worker. Deux kilo-octets
+    // au lieu des cinq cents de l'application, et aucun JavaScript — un
+    // artisan qui est dans une cave ne doit pas attendre un bundle pour
+    // toucher un bouton. Sans cette ligne, /agir serait servi par la
+    // couche des assets et le Worker ne le verrait jamais.
+    "run_worker_first": ["/api/*", "/agir"]
   },
 
   // ─────────────────────────────────────────────────────────────────────

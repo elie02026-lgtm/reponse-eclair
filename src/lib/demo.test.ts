@@ -141,6 +141,9 @@ function fausse(champs: Partial<Demande> & { id: number }): Demande {
     relance_sms_le: null,
     traite_le: null,
     montant_signe: null,
+    gravite_corrigee: null,
+    corrigee_le: null,
+    cle_action: null,
     ...champs,
   }
 }

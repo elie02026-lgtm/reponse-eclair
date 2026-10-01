@@ -70,6 +70,57 @@ export async function enregistrerMontant(
   return { demande: data[0] as Demande }
 }
 
+/**
+ * Corriger la gravité estimée par le modèle (migration 0014).
+ *
+ * ON N'ÉCRASE JAMAIS `gravite`. Le modèle garde sa réponse, l'artisan écrit
+ * la sienne à côté, et l'écart entre les deux est la donnée qui dira, dans
+ * six mois, si la classification est juste. La base l'impose d'ailleurs :
+ * depuis la migration 0014, le client n'a plus le droit d'écrire `gravite`
+ * — vérifié, un `update` sur cette colonne rend 42501.
+ *
+ * Un cran à la fois, bornes 0 et 3. Deux boutons plutôt qu'un choix à
+ * quatre valeurs : l'artisan corrige en passant, entre deux chantiers, et
+ * « un peu moins grave » est une pensée plus naturelle que « gravité 2 ».
+ */
+export async function corrigerGravite(
+  demande: Demande,
+  sens: 'moins' | 'plus',
+): Promise<{ demande?: Demande; erreur?: string }> {
+  const actuelle = demande.gravite_corrigee ?? demande.gravite
+  // Rien de connu : on ne devine pas 3 ni 0. « Moins » dit 1, « plus » dit 2.
+  const depart = actuelle ?? (sens === 'moins' ? 2 : 1)
+  const voulue = Math.min(3, Math.max(0, depart + (sens === 'moins' ? -1 : 1)))
+
+  if (actuelle !== null && voulue === actuelle) {
+    return {
+      erreur:
+        sens === 'moins'
+          ? 'Déjà au plus bas : cette demande est marquée « pas une urgence ».'
+          : 'Déjà au plus haut : cette demande est marquée « dégât en cours ou danger ».',
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('demandes')
+    // Les deux colonnes ENSEMBLE, toujours : la base refuse l'une sans
+    // l'autre (contrainte `demandes_correction_datee`). Une correction sans
+    // date serait une correction dont on ne saurait pas quand elle a eu lieu.
+    .update({ gravite_corrigee: voulue, corrigee_le: new Date().toISOString() })
+    .eq('id', demande.id)
+    .select()
+
+  if (error) return { erreur: `Correction refusée : ${error.message}` }
+
+  // Le même piège de la RLS que plus haut : zéro ligne modifiée n'est pas
+  // une erreur pour Postgres, seulement pour nous.
+  if (!data || data.length === 0) {
+    return { erreur: 'Aucune ligne modifiée. La demande ne vous appartient pas.' }
+  }
+
+  return { demande: data[0] as Demande }
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // LA PREMIÈRE LECTURE DE CE FICHIER, ET LA SEULE
 // ─────────────────────────────────────────────────────────────────────────
