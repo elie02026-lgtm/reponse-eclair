@@ -27,6 +27,9 @@ function d(champs: Partial<Demande> & { id: number }): Demande {
     gravite_corrigee: null,
     corrigee_le: null,
     cle_action: null,
+    eau_coule: null,
+    arrivee_coupee: null,
+    chauffage_eau_chaude: null,
     ...champs,
   }
 }

@@ -77,6 +77,9 @@ export const DEMANDES_DEMO: Demande[] = [
     gravite_corrigee: null,
     corrigee_le: null,
     cle_action: null,
+    eau_coule: null,
+    arrivee_coupee: null,
+    chauffage_eau_chaude: null,
   },
   {
     id: 2,
@@ -100,6 +103,9 @@ export const DEMANDES_DEMO: Demande[] = [
     gravite_corrigee: null,
     corrigee_le: null,
     cle_action: null,
+    eau_coule: 'non',
+    arrivee_coupee: null,
+    chauffage_eau_chaude: 'non',
   },
   {
     id: 3,
@@ -123,6 +129,9 @@ export const DEMANDES_DEMO: Demande[] = [
     gravite_corrigee: null,
     corrigee_le: null,
     cle_action: null,
+    eau_coule: null,
+    arrivee_coupee: null,
+    chauffage_eau_chaude: null,
   },
   {
     id: 4,
@@ -146,6 +155,12 @@ export const DEMANDES_DEMO: Demande[] = [
     gravite_corrigee: null,
     corrigee_le: null,
     cle_action: null,
+    // Ce que Marc a répondu aux trois questions. C'est ce qui justifie la
+    // gravité 3 : l'eau coule ENCORE et rien n'est coupé. Un visiteur doit
+    // voir que le classement ne sort pas d'un chapeau.
+    eau_coule: 'oui',
+    arrivee_coupee: 'non',
+    chauffage_eau_chaude: null,
   },
 ]
 

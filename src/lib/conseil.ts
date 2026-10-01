@@ -110,11 +110,17 @@ export function conseils(reponses: Reponses, metier: string): Conseil[] {
   // geste, et c'est celui qui garde le client : il repart avec quelque chose
   // à faire, donné par l'artisan.
   //
-  // On exige « non » et pas « je-ne-sais-pas », parce que c'est ce que le
-  // cahier dit. Quelqu'un qui ne sait pas s'il a coupé mérite peut-être le
-  // même conseil — c'est une question ouverte, posée à Elie, pas une
-  // décision prise ici en silence.
-  if (reponses.eau_coule === 'oui' && reponses.arrivee_coupee === 'non') {
+  // « JE NE SAIS PAS » COMPTE COMME « NON ». Le cahier n'exigeait que
+  // « non » ; Elie a tranché le 1ᵉʳ octobre 2026 dans l'autre sens, et il a
+  // raison : quelqu'un qui ignore s'il a coupé l'arrivée est exactement
+  // celui à qui il faut dire où se trouve le robinet. Lui donner ce conseil
+  // ne peut pas nuire ; le lui refuser peut coûter un parquet.
+  //
+  // L'absence de réponse, en revanche, ne déclenche rien : il n'a pas touché
+  // la question, on ne décide pas à sa place.
+  const nonCoupee =
+    reponses.arrivee_coupee === 'non' || reponses.arrivee_coupee === 'je-ne-sais-pas'
+  if (reponses.eau_coule === 'oui' && nonCoupee) {
     liste.push(consignes.fuite)
   }
 

@@ -100,6 +100,15 @@ export type Demande = {
   gravite_corrigee: number | null
   corrigee_le: string | null
 
+  // ─── Migration 0017 : les trois réponses à boutons du CLIENT ───
+  //
+  // `null` = il n'a pas touché la question, ce qui est permis. L'artisan ne
+  // peut pas les réécrire : ce sont les mots de son client, pas un jugement
+  // à corriger. La base le lui interdit colonne par colonne.
+  eau_coule: string | null
+  arrivee_coupee: string | null
+  chauffage_eau_chaude: string | null
+
   // Le secret qui autorise les boutons de l'e-mail d'alerte. L'artisan peut
   // le lire — c'est le sien — mais il ne peut PAS l'écrire : la migration
   // 0014 lui a retiré ce droit colonne par colonne. Il n'apparaît jamais

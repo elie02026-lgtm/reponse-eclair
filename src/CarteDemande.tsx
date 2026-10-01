@@ -37,6 +37,14 @@ const STYLE_GRAVITE: Record<number, string> = {
   0: 'bg-slate-100 text-slate-500 ring-slate-200',
 }
 
+/** Les réponses du client, en français lisible. La valeur stockée est
+ *  « je-ne-sais-pas » ; personne ne doit lire ça sur un écran. */
+const LIBELLE_REPONSE: Record<string, string> = {
+  oui: 'oui',
+  non: 'non',
+  'je-ne-sais-pas': 'il ne sait pas',
+}
+
 const SENS_GRAVITE: Record<number, string> = {
   3: 'Dégât en cours ou danger',
   2: 'Panne gênante, sans danger',
@@ -136,6 +144,25 @@ export default function CarteDemande({
           <div className="opacity-80">{d.urgence_dite ?? '—'}</div>
         </div>
       </div>
+
+      {/* CE QUE LE CLIENT A RÉPONDU AUX TROIS QUESTIONS (migration 0017).
+          Stockées sans être montrées, elles n'auraient servi qu'au modèle.
+          Or « l'eau coule et ce n'est pas coupé » est l'information qui dit
+          à l'artisan s'il part maintenant ou dans une heure — et c'est un
+          fait rapporté par le client, pas une estimation de machine.
+          On n'affiche que ce qui a été répondu : une ligne vide dirait
+          quelque chose de faux. */}
+      {(d.eau_coule || d.arrivee_coupee || d.chauffage_eau_chaude) && (
+        <ul className="mt-3 space-y-1 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200">
+          {d.eau_coule && <li>L’eau coule en ce moment : {LIBELLE_REPONSE[d.eau_coule]}</li>}
+          {d.arrivee_coupee && (
+            <li>Arrivée d’eau coupée : {LIBELLE_REPONSE[d.arrivee_coupee]}</li>
+          )}
+          {d.chauffage_eau_chaude && (
+            <li>Chauffage et eau chaude : {LIBELLE_REPONSE[d.chauffage_eau_chaude]}</li>
+          )}
+        </ul>
+      )}
 
       <div className="mt-3 flex gap-2">
         {tel.etat === 'ok' && (

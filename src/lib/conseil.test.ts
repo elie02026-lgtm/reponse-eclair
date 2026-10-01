@@ -44,13 +44,27 @@ test('si l’eau ne coule pas, aucun conseil de coupure', () => {
   assert.deepEqual(titres()(r({ eau_coule: 'non', arrivee_coupee: 'non' })), [])
 })
 
-test('« je ne sais pas » ne déclenche pas le conseil — c’est le cahier', () => {
-  // Décision reprise du cahier telle quelle. Elle est discutable : quelqu'un
-  // qui ignore s'il a coupé mérite peut-être le même conseil. La question
-  // est posée à Elie, et ce test garde l'état actuel en attendant sa
-  // réponse — pour qu'un changement soit délibéré, pas accidentel.
-  assert.deepEqual(titres()(r({ eau_coule: 'oui', arrivee_coupee: 'je-ne-sais-pas' })), [])
+test('« JE NE SAIS PAS » SUR LA COUPURE DÉCLENCHE LE CONSEIL', () => {
+  // Arbitrage d'Elie, 1er octobre 2026, contre la lettre du cahier : celui
+  // qui ignore s'il a coupé l'arrivée est précisément celui à qui il faut
+  // dire où est le robinet. Le conseil ne peut pas nuire ; le refuser peut
+  // coûter un parquet.
+  const liste = conseils(r({ eau_coule: 'oui', arrivee_coupee: 'je-ne-sais-pas' }), 'plombier')
+  assert.equal(liste.length, 1)
+  assert.equal(liste[0]?.agir, true)
+})
+
+test('mais si l’eau ne coule PEUT-ÊTRE pas, on ne conseille rien', () => {
+  // Le doute sur la coupure justifie le conseil ; le doute sur la fuite,
+  // non. On ne fait pas courir quelqu'un vers son compteur pour une fuite
+  // dont il n'est pas sûr.
   assert.deepEqual(titres()(r({ eau_coule: 'je-ne-sais-pas', arrivee_coupee: 'non' })), [])
+})
+
+test('une question non touchée ne déclenche rien', () => {
+  // `null` n'est pas « je ne sais pas » : il n'a pas répondu, on ne décide
+  // pas à sa place.
+  assert.deepEqual(titres()(r({ eau_coule: 'oui' })), [])
 })
 
 test('sans aucune réponse, on ne conseille rien', () => {
