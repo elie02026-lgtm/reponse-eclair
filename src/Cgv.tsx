@@ -4,6 +4,7 @@ import {
   JOURS_GARANTIE,
   NOM_GARANTIE,
   PRIX_MENSUEL,
+  STATUT_JURIDIQUE_OK,
   TEXTE_GARANTIE,
 } from './config/offre'
 
@@ -132,16 +133,42 @@ export default function Cgv() {
             au sens du contrôle effectué par le service au moment de la réception. Les{' '}
             {JOURS_GARANTIE} jours courent à compter de la création du compte.
           </p>
+          {/* QUAND COMMENCE-T-ON À PAYER ? Arbitrage d'Elie, 1ᵉʳ octobre 2026.
+              Le texte de la garantie dit quand on NE paie PAS ; sans cette
+              phrase, il ne disait pas quand on commence. Un contrat muet sur
+              le point de départ de la facturation est un contrat qui se
+              discute au premier prélèvement. */}
+          <p className="mt-2">
+            La facturation commence <strong>le jour où la cinquième demande est reçue</strong>,
+            au prorata du mois en cours. Si ce jour n’arrive jamais, rien n’est facturé.
+          </p>
           <p className="mt-2">
             Cette garantie <strong>s’ajoute</strong> au droit de rétractation de
             l’article 6 ; elle ne le remplace pas.
           </p>
         </div>
-        {REGIME_TVA === 'franchise' && (
+
+        {/* NE PAS AFFIRMER UN RÉGIME FISCAL SANS ENTREPRISE.
+            Même règle que sur /offre, décidée le 1ᵉʳ octobre 2026 : tant que
+            `STATUT_JURIDIQUE_OK` est `false`, la mention « TVA non applicable,
+            article 293 B du CGI » disparaît. Un régime de TVA suppose une
+            immatriculation ; l'écrire dans un contrat est plus lourd que sur
+            une page de vente, puisque c'est le contrat qu'on oppose.
+            On ne la cache pas : on dit à la place ce qui est vrai. */}
+        {STATUT_JURIDIQUE_OK ? (
+          REGIME_TVA === 'franchise' && (
+            <p>
+              <strong>{MENTION_TVA}.</strong> L’éditeur relève de la franchise en base : il
+              ne facture pas de TVA. Le prix annoncé est donc le prix payé — il n’y a rien à
+              y ajouter, et rien à récupérer.
+            </p>
+          )
+        ) : (
           <p>
-            <strong>{MENTION_TVA}.</strong> L’éditeur relève de la franchise en base : il
-            ne facture pas de TVA. Le prix annoncé est donc le prix payé — il n’y a rien à
-            y ajouter, et rien à récupérer.
+            <strong>L’éditeur n’est pas encore immatriculé.</strong> Aucun régime de TVA
+            n’est donc applicable à ce jour, et aucune souscription n’est ouverte : les
+            inscriptions ouvriront à l’immatriculation. D’ici là, le service ne peut être
+            mis en place que par un appel.
           </p>
         )}
         <p>
