@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEMANDES_DEMO, trier } from './demo.ts'
+import { URGENCES } from './demandeRecue.ts'
 import type { Demande } from '../types.ts'
 
 // Se lance avec :  node --test
@@ -74,8 +75,27 @@ test('LES QUATRE ONT COCHÉ « URGENT » — sinon l’écart ne se voit pas', (
   // C'est l'argument entier du produit : ce que le client coche ne dit rien.
   // Si une seule des quatre avait coché « non », le prospect pourrait croire
   // que le logiciel se contente de lire la case.
+  //
+  // LE LIBELLÉ EST LU DEPUIS LA LISTE BLANCHE DU FORMULAIRE, pas recopié.
+  // Le 1er octobre 2026, la démo affichait « Oui, c'est une urgence » pendant
+  // que le vrai formulaire proposait « Oui, c'est urgent » : un prospect qui
+  // regardait la démo puis remplissait le formulaire lisait deux phrases
+  // différentes pour la même case. Trouvé en envoyant une demande de test,
+  // pas en relisant le code. En important `URGENCES`, l'écart ne peut plus
+  // revenir — et le jour où Elie reformule la question, la démo suit toute
+  // seule.
   for (const d of DEMANDES_DEMO) {
-    assert.equal(d.urgence_dite, 'Oui, c’est une urgence', `${d.motif} n’a pas coché urgent`)
+    assert.equal(d.urgence_dite, URGENCES[0], `${d.motif} n’a pas coché urgent`)
+  }
+})
+
+test('le libellé de la démo existe VRAIMENT dans le formulaire', () => {
+  // Contrôle plus large que le précédent : aucune des quatre ne doit porter
+  // une phrase que le formulaire n'offre pas. Un `urgence_dite` inventé
+  // passerait le test ci-dessus si on changeait `URGENCES[0]` par erreur.
+  const offerts: readonly string[] = URGENCES
+  for (const d of DEMANDES_DEMO) {
+    assert.ok(offerts.includes(d.urgence_dite ?? ''), `libellé inconnu : ${d.urgence_dite}`)
   }
 })
 
