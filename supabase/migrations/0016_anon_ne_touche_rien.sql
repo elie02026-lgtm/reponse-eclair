@@ -1,0 +1,47 @@
+-- 0016 — anon n'a plus aucun droit sur les deux tables (1ᵉʳ octobre 2026)
+--
+-- ─────────────────────────────────────────────────────────────────────────
+-- CE QUE LES REVOKE PRÉCÉDENTS AVAIENT LAISSÉ PASSER
+-- ─────────────────────────────────────────────────────────────────────────
+-- Les migrations 0013 et 0014 retiraient à `anon` les quatre droits qu'on
+-- pense à nommer : SELECT, INSERT, UPDATE, DELETE. En vérifiant le résultat
+-- de la 0014, il restait ceci :
+--
+--     anon sur artisans ....... REFERENCES, TRIGGER, TRUNCATE
+--     anon sur demandes ....... REFERENCES, TRIGGER, TRUNCATE
+--
+-- Supabase accorde ALL par défaut, et un `revoke` qui énumère quatre droits
+-- en laisse trois. Aucun des trois n'est atteignable par PostgREST, donc ce
+-- n'était pas une faille ouverte — mais TRUNCATE mérite d'être dit :
+--
+--     TRUNCATE NE PASSE PAS PAR LA RLS. Les politiques filtrent des lignes
+--     lors d'un SELECT, d'un UPDATE ou d'un DELETE. Un TRUNCATE vide la
+--     table entière sans les consulter. La protection sur laquelle repose
+--     tout le reste du schéma ne s'applique pas à lui.
+--
+-- Un droit que personne n'utilise et qui contourne la seule barrière du
+-- système n'a aucune raison d'exister. `all` plutôt qu'une énumération :
+-- c'est précisément l'énumération qui avait laissé le trou.
+--
+-- ─────────────────────────────────────────────────────────────────────────
+-- CE QUI CONTINUE DE MARCHER, ET POURQUOI
+-- ─────────────────────────────────────────────────────────────────────────
+-- Le Worker se présente avec la clé PUBLIABLE, donc en rôle `anon`, et il
+-- n'a plus le droit de toucher une seule ligne. Il n'en a pas besoin : il
+-- passe par trois fonctions `security definer`, qui s'exécutent sous leur
+-- propriétaire et non sous l'appelant.
+--
+-- Mesuré APRÈS l'application, en production :
+--
+--     artisan_public('PNPZKA4U') ......... 200  {"entreprise":"Plomberie Aubagne"}
+--     artisan_par_numero(...) ............ 200
+--     agir_sur_demande(...) .............. éprouvée le même jour
+--     GET /artisans (lecture directe) .... 401
+--     GET /demandes (lecture directe) .... 401
+--     POST /api/demande (la chaîne) ...... 200 {"ok":true} en 0,23 s
+--
+-- Autrement dit : anon ne peut plus rien faire d'autre que frapper aux
+-- trois portes qu'on lui a ouvertes, et chacune ne fait qu'une chose.
+
+revoke all on public.demandes from anon;
+revoke all on public.artisans from anon;
