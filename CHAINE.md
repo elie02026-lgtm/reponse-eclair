@@ -67,6 +67,47 @@ Piège relevé au passage : la gravité arrive **après** la réponse HTTP. En
 interrogeant la base trop vite on lit `null` et on croit à une panne. Ça
 m'est arrivé, et j'ai failli l'écrire.
 
+### DEPUIS LE 1ᵉʳ OCTOBRE, LE WEBHOOK EXIGE UNE CLÉ
+
+L'adresse `hook.eu1.make.com/zyfgvw…` est dans l'historique git pour
+toujours : elle y a été écrite en clair pendant des semaines. On ne l'a donc
+pas changée — une adresse déjà publiée le reste. **On l'a rendue inerte.**
+
+Le webhook *Tally lead* porte une clé d'API (trousseau Make, en-tête
+`x-make-apikey`), et le Worker l'envoie depuis le secret `MAKE_CLE`.
+
+Éprouvé le 1ᵉʳ octobre, avec les contrôles négatifs d'abord :
+
+| test | résultat |
+|---|---|
+| l'URL nue, **sans** en-tête | **401 Unauthorized** |
+| l'URL avec une **mauvaise** clé | **401** — vraie validation, pas un contrôle de présence |
+| `POST /api/demande` (le Worker a la clé) | **200** `{"ok":true}` en **0,34 s** |
+| ligne en base | id 44, Plomberie Aubagne, `+33639980042`, Montreuil |
+| l'IA a répondu | **gravité 3**, `fuite ballon eau chaude`, 280 €, en **20 s** |
+
+**L'ORDRE DE POSE COMPTE, et il nous a coûté deux allers-retours.** Le Worker
+n'envoie l'en-tête que si `MAKE_CLE` existe (`src/worker/index.ts`). Il faut
+donc : poser le secret chez Cloudflare → **attendre le déploiement** → puis
+seulement exiger la clé côté Make. L'inverse coupe la capture.
+
+Et la panne qu'on a réellement eue n'était ni l'ordre ni le déploiement :
+**les deux valeurs différaient**, parce que la clé avait été sélectionnée à la
+souris deux fois. De l'extérieur, « clé absente » et « clé fausse » donnent le
+même 401 — impossible à distinguer sans les journaux. La parade est de ne
+jamais sélectionner la valeur à la main :
+
+```powershell
+-join ((48..57)+(65..90)+(97..122) | Get-Random -Count 40 | % {[char]$_}) | Set-Clipboard
+```
+
+puis deux `Ctrl+V`, sans rien copier d'autre entre les deux.
+
+Quand le Worker est refusé par Make, `/api/demande` rend
+`502 {"erreur":"Service indisponible.","etape":"make"}`, et le Worker
+journalise `[/api/demande] echec a l'etape make : reponse 401` dans
+l'onglet **Observability** de Cloudflare. C'est à ça que sert `etape`.
+
 La charge utile est désormais plate — `{ code, prenom, telephone, email,
 lieu, besoin, urgence_dite }` — donc `{{2.prenom}}` et non plus
 `{{2.data.fields[1].value}}`.
