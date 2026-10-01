@@ -184,8 +184,8 @@ export default function Offre() {
               </span>
             </div>
 
-            {/* NE PAS ÉCRIRE « HT » EN FRANCHISE EN BASE. « 79 € HT » fait
-                calculer 94,80 € à un artisan habitué à ajouter la TVA, et on
+            {/* NE PAS ÉCRIRE « HT » EN FRANCHISE EN BASE. « 59 € HT » fait
+                calculer 70,80 € à un artisan habitué à ajouter la TVA, et on
                 perd l'appel sur un prix qu'on ne facture pas.
 
                 ET NE PAS AFFIRMER UN RÉGIME FISCAL SANS ENTREPRISE. Tant que

@@ -18,12 +18,21 @@ export const LIEN_RDV = 'https://cal.com/elie-gywz5w/rdv'
 // ─────────────────────────────────────────────────────────────────────────
 
 /**
- * 79 € par mois. Décision d'Elie, confirmée le 30 septembre 2026.
+ * 59 € par mois. Décision d'Elie, 1ᵉʳ octobre 2026 — il avait dit 79 € la
+ * veille, et l'a revu à la baisse après avoir vu la page.
  *
  * LA RAISON DU PRIX, ET RIEN D'AUTRE :
  *   • un ancrage entre LockLead (49 €) et Repondeo (149 €) ;
  *   • l'installation est faite avec le client, au téléphone. C'est ce que
  *     les deux autres ne font pas, et c'est ce qui se paie.
+ *
+ * CE QUE LA BAISSE A CHANGÉ, ET QU'IL FAUT SAVOIR : à 59 €, l'écart avec
+ * LockLead n'est plus que de 10 €. L'ancrage tient toujours, mais il ne
+ * porte presque plus l'argument — ce qui justifie le prix devient
+ * l'installation faite à la main, pas la position dans la fourchette. C'est
+ * un choix assumé, pas un oubli : un premier client se gagne plus vite à
+ * 59 € qu'à 79 €, et on peut monter plus tard pour les suivants. Baisser
+ * après avoir vendu, en revanche, ne se fait pas.
  *
  * CE QUI A ÉTÉ RETIRÉ, ET POURQUOI. La page affirmait une fourchette de prix
  * d'intervention d'urgence, et en déduisait qu'un seul rappel rattrapé dans
@@ -34,7 +43,7 @@ export const LIEN_RDV = 'https://cal.com/elie-gywz5w/rdv'
  * a donc plus AUCUNE phrase de rentabilité chiffrée sur `/offre`, et il ne
  * faut pas en remettre sans une source qu'on puisse citer.
  */
-export const PRIX_MENSUEL = 79
+export const PRIX_MENSUEL = 59
 
 /**
  * Combien d'installations par semaine on accepte.

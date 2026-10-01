@@ -45,7 +45,11 @@ import {
 //     que ce soit écrit avant qu'un artisan manque une vraie urgence, pas
 //     après.
 
-const MAJ = '30 septembre 2026'
+// Toute modification du PRIX ou de la GARANTIE change cette date : ce sont
+// des clauses, pas de l'habillage. Le 1ᵉʳ octobre, le prix est passé de 79 à
+// 59 €. Personne n'était encore abonné, donc le préavis d'un mois prévu plus
+// bas ne s'appliquait à personne — ce ne sera plus vrai au premier client.
+const MAJ = '1ᵉʳ octobre 2026'
 
 export default function Cgv() {
   return (

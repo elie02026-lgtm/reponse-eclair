@@ -75,8 +75,8 @@ export const IDENTITE_COMPLETE = Object.values(EDITEUR).every(
 // de services, tolérance jusqu'à 41 250 €.
 //
 // Conséquence concrète, et c'est pour ça que cette constante existe :
-// afficher « 79 € HT » laisse entendre qu'il faudra ajouter 20 % — soit
-// 94,80 €. En franchise, le client paie 79 €, point. Un prix annoncé plus
+// afficher « 59 € HT » laisse entendre qu'il faudra ajouter 20 % — soit
+// 70,80 €. En franchise, le client paie 59 €, point. Un prix annoncé plus
 // bas qu'il n'est vraiment se pardonne ; plus haut, on perd l'appel.
 export const REGIME_TVA: 'franchise' | 'assujetti' = 'franchise'
 
