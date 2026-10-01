@@ -1,7 +1,11 @@
 import PageLegale, { Bloc, BlocEditeur } from './PageLegale'
 import { MENTION_TVA, REGIME_TVA } from './lib/editeur'
-import { PRIX } from './lib/prix'
-import { JOURS_GARANTIE, NOM_GARANTIE, TEXTE_GARANTIE } from './config/offre'
+import {
+  JOURS_GARANTIE,
+  NOM_GARANTIE,
+  PRIX_MENSUEL,
+  TEXTE_GARANTIE,
+} from './config/offre'
 
 // CONDITIONS GÉNÉRALES DE VENTE (cahier, case D2 : « mentions légales et
 // CGV accessibles »).
@@ -105,7 +109,7 @@ export default function Cgv() {
 
       <Bloc titre="5. Prix">
         <p>
-          <strong>{PRIX} € par mois</strong>, sans engagement de durée. Sont compris : le
+          <strong>{PRIX_MENSUEL} € par mois</strong>, sans engagement de durée. Sont compris : le
           numéro, les SMS, le formulaire, les alertes, les relances et l’accès à l’écran.
         </p>
 

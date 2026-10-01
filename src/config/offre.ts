@@ -6,13 +6,62 @@
 // recopie un texte, elles l'importent. Une promesse ne peut donc pas être
 // vraie sur la page de vente et fausse dans le contrat.
 //
-// Le prix vit encore dans `lib/prix.ts`, où les CGV le lisent déjà. Il
-// viendra ici en phase 3, en un seul mouvement, pour qu'il n'y ait jamais
-// deux sources.
+// `lib/prix.ts` a été SUPPRIMÉ le 1ᵉʳ octobre 2026 et son contenu est venu
+// ici. Il n'existe donc plus deux endroits où un prix peut vivre.
 
 /** Où l'on parle à un humain. Le cahier a tranché : un artisan préfère un
  *  humain à une IA, et l'appel sert à ça. */
 export const LIEN_RDV = 'https://cal.com/elie-gywz5w/rdv'
+
+// ─────────────────────────────────────────────────────────────────────────
+// LE PRIX
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * 79 € par mois. Décision d'Elie, confirmée le 30 septembre 2026.
+ *
+ * LA RAISON DU PRIX, ET RIEN D'AUTRE :
+ *   • un ancrage entre LockLead (49 €) et Repondeo (149 €) ;
+ *   • l'installation est faite avec le client, au téléphone. C'est ce que
+ *     les deux autres ne font pas, et c'est ce qui se paie.
+ *
+ * CE QUI A ÉTÉ RETIRÉ, ET POURQUOI. La page affirmait une fourchette de prix
+ * d'intervention d'urgence, et en déduisait qu'un seul rappel rattrapé dans
+ * l'année payait l'abonnement. La fourchette n'avait aucune source, et le
+ * calcul était faux au bas de celle-ci. Consigne d'Elie, mot pour mot :
+ * « aucun chiffre sans source, ni sur la page ni dans le code » — y compris
+ * dans un commentaire, et y compris pour expliquer qu'on l'a retiré. Il n'y
+ * a donc plus AUCUNE phrase de rentabilité chiffrée sur `/offre`, et il ne
+ * faut pas en remettre sans une source qu'on puisse citer.
+ */
+export const PRIX_MENSUEL = 79
+
+/**
+ * Combien d'installations par semaine on accepte.
+ *
+ * RARETÉ RÉELLE, PAS RARETÉ INVENTÉE. Chaque client est installé par
+ * téléphone, à la main, en une quinzaine de minutes d'appel. Trois par
+ * semaine est ce qu'une personne seule peut tenir — c'est une contrainte
+ * vraie, pas un compte à rebours de page de vente. Le jour où ce n'est plus
+ * vrai, il faut changer ce nombre ici, pas le laisser mentir.
+ */
+export const INSTALLATIONS_PAR_SEMAINE = 3
+
+/**
+ * L'entreprise est-elle immatriculée ?
+ *
+ * TANT QUE C'EST `false` :
+ *   • on n'affiche PAS « TVA non applicable, article 293 B du CGI » — c'est
+ *     une affirmation de régime fiscal, et un régime fiscal suppose une
+ *     entreprise ;
+ *   • on affiche à la place, près du prix, que les inscriptions ouvrent à
+ *     l'immatriculation.
+ *
+ * On ne cache rien : on dit la vérité, qui est qu'on n'encaisse pas encore.
+ * Un artisan qui paie une entreprise non immatriculée a un vrai problème ;
+ * mieux vaut qu'il l'apprenne de nous.
+ */
+export const STATUT_JURIDIQUE_OK = false
 
 // ─────────────────────────────────────────────────────────────────────────
 // LA GARANTIE

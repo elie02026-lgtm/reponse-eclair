@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import { appliquer } from './lib/metadonnees.ts'
 import App from './App.tsx'
 import Demo from './Demo.tsx'
 import Desinscription from './Desinscription.tsx'
@@ -44,7 +45,18 @@ import SousTraitance from './SousTraitance.tsx'
 // l'icône posée sur l'écran d'accueil d'Elie pointe dessus. Déplacer
 // l'application casserait la case E2 déjà acquise. La vitrine prendra la
 // racine le jour du vrai domaine, pas avant.
+// LE TITRE ET LES BALISES DE LA PAGE, posés avant le rendu.
+//
+// Les sept pages s'appelaient toutes « Réponse Éclair » jusqu'au 1ᵉʳ octobre
+// 2026. Les textes vivent dans `lib/metadonnees.ts`, qui est pur et testé —
+// un test y relit même CE fichier pour vérifier qu'aucune route n'a été
+// ajoutée sans titre.
+//
+// Limite connue, écrite en toutes lettres dans ce module : les robots de
+// WhatsApp, LinkedIn et Facebook n'exécutent pas le JavaScript. Ils verront
+// le titre générique d'`index.html`. Google, lui, exécute.
 const chemin = window.location.pathname
+appliquer(document, chemin)
 const PUBLIQUES: Record<string, React.ReactElement> = {
   '/offre': <Offre />,
   '/demo': <Demo />,
