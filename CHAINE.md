@@ -67,6 +67,49 @@ Piège relevé au passage : la gravité arrive **après** la réponse HTTP. En
 interrogeant la base trop vite on lit `null` et on croit à une panne. Ça
 m'est arrivé, et j'ai failli l'écrire.
 
+### LE 7 OCTOBRE, LA CHAÎNE ENTIÈRE A TOURNÉ SANS QU'ON OUVRE LE LOGICIEL
+
+Le scénario reçoit désormais **onze champs** au module 5 — les sept d'avant,
+plus `eau_coule`, `arrivee_coupee`, `chauffage_eau_chaude` (phase 5) et
+`cle_action` (phase 4). Le module 4 porte le gabarit de
+`courriel/alerte-artisan.html`, avec ses deux boutons d'action.
+
+Mesuré de bout en bout, horloge de Paris :
+
+| | |
+|---|---|
+| 12 h 34 min 43 | la demande arrive — **aucune description tapée** |
+| | l'eau coule : oui · arrivée coupée : non |
+| | → **gravité 3**, « fuite non maitrisee », 300 € |
+| 12 h 37 min 21 | « C'est fait » touché dans Gmail, puis le bouton de la page |
+| | → statut **rappelé**, horodaté |
+| **2 min 38** | **et le logiciel n'a jamais été ouvert** |
+
+**CE QUE CE TEST A PROUVÉ ET QU'AUCUN AUTRE NE POUVAIT PROUVER : Gmail
+réécrit les liens** — il les fait passer par `google.com/url?q=…` pour les
+analyser. Le jeton de 64 caractères hexadécimaux survit à cette réécriture.
+Tous mes essais précédents utilisaient `curl` sur l'URL brute et ne
+touchaient donc pas ce maillon.
+
+### LE DÉFAUT QUE CE MÊME TEST A RÉVÉLÉ, DEUX HEURES PLUS TÔT
+
+À 9 h 49, la même demande — sans description — est sortie en **gravité 1,
+motif « contenu manquant », panier 0 €**. Le client le plus urgent du
+logiciel, rangé en dernier, sans un mot.
+
+Cause : depuis la phase 5 la description est facultative, mais le prompt du
+module 9 ne recevait que `besoin` et `urgence_dite`. Il n'avait rien à juger.
+
+Deux correctifs, et il fallait les deux :
+
+1. **le prompt du module 9** reçoit maintenant les trois réponses, et des
+   règles explicites pour le cas où la description est vide ;
+2. **un plancher de gravité dans le code** (`lib/tri.ts`), qui ne dépend
+   d'aucun modèle : l'eau coule et ce n'est pas coupé → au moins 3.
+
+Contrôle négatif passé le même jour : un devis de salle de bain à 8 000 €,
+avec « urgent » coché, reste en **gravité 1**. Le prompt discrimine toujours.
+
 ### DEPUIS LE 1ᵉʳ OCTOBRE, LE WEBHOOK EXIGE UNE CLÉ
 
 L'adresse `hook.eu1.make.com/zyfgvw…` est dans l'historique git pour
