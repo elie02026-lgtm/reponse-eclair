@@ -42,3 +42,7 @@ dist-ssr
 # blueprint Make contient la clé de service en clair.
 make/*.txt
 make/*.tmp.json
+
+# Liste de prospection : elle contient des NOMS DE DIRIGEANTS.
+# Le depot est public. Ces fichiers ne doivent jamais partir sur GitHub.
+outils/prospects/sortie/
