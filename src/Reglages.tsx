@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { supabase } from './lib/supabase'
 import { exporterDemandes } from './lib/export'
 import { analyserSms } from './lib/sms'
+import { enregistrerReglages } from './lib/artisan'
 import Resiliation from './Resiliation'
 import RenvoiAppel from './RenvoiAppel'
 import CompteurGarantie from './CompteurGarantie'
@@ -66,29 +67,18 @@ export default function Reglages() {
     setErreur(null)
     setSucces(false)
 
-    const { data, error } = await supabase
-      .from('artisans')
-      .update({
-        entreprise: artisan.entreprise,
-        metier: artisan.metier,
-        code_postal: artisan.code_postal,
-        zone_minutes: artisan.zone_minutes,
-        message_sms: artisan.message_sms,
-      })
-      .eq('id', artisan.id)
-      .select()
+    // L'écriture vit dans `lib/artisan.ts` : elle y porte le piège de la RLS
+    // (zéro ligne modifiée sans erreur levée) et la validation du lien de
+    // rendez-vous, qui est testée — ce qu'un fichier `.tsx` ne permet pas.
+    const { artisan: enregistre, erreur: refus } = await enregistrerReglages(artisan)
 
     setEnvoi(false)
 
-    if (error) {
-      setErreur(`Enregistrement refusé : ${error.message}`)
+    if (refus) {
+      setErreur(refus)
       return
     }
-    // Même précaution que pour les demandes : zéro ligne modifiée n'est pas une erreur.
-    if (!data || data.length === 0) {
-      setErreur('Aucune ligne modifiée. La fiche ne vous appartient pas.')
-      return
-    }
+    if (enregistre) setArtisan(enregistre)
     setEntrepriseEnregistree(artisan.entreprise)
     setSucces(true)
   }
@@ -162,6 +152,38 @@ export default function Reglages() {
           </select>
           <span className="text-xs text-slate-500">
             Détermine la grille de gravité appliquée à vos demandes.
+          </span>
+        </label>
+
+        {/* LE LIEN DE PRISE DE RENDEZ-VOUS (migration 0019).
+            Il remplace le lien cal.com d'Elie, qui était écrit en dur dans le
+            prompt du module 9 de la chaîne Make : avec un vrai client, ses
+            clients auraient pris rendez-vous dans l'agenda d'Elie.
+
+            LA PHRASE D'AIDE DIT « JAMAIS POUR UNE URGENCE », et ce n'est pas
+            une formule de politesse : c'est la règle que `docs/messages-client.md`
+            applique. Prendre rendez-vous pour une fuite qui coule est absurde.
+            L'artisan doit savoir ce que le logiciel fera de ce qu'il tape.
+
+            `type="url"` et non `text` : le clavier des téléphones y propose
+            « / » et « .com », et le navigateur refuse déjà ce qui n'est pas
+            une adresse. La vraie règle — https, sans espace, 300 signes — est
+            dans `lib/artisan.ts`, et la base la porte aussi. */}
+        <label className="block space-y-1">
+          <span className="text-sm font-medium text-slate-700">
+            Votre lien de prise de rendez-vous (facultatif)
+          </span>
+          <input
+            type="url"
+            inputMode="url"
+            placeholder="https://cal.com/votre-nom"
+            value={artisan.lien_rdv ?? ''}
+            onChange={(e) => champ('lien_rdv', e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
+          />
+          <span className="text-xs text-slate-500">
+            Il sera proposé aux clients dont la demande n’est pas urgente. Jamais pour une
+            urgence.
           </span>
         </label>
 

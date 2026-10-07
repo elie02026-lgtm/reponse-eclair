@@ -98,6 +98,17 @@ export type Artisan = {
   // pas secret : il sert d'adresse, pas de clé.
   code: string
   cree_le: string | null
+
+  // ─── Migration 0019 : le lien de prise de rendez-vous ───
+  //
+  // Facultatif, et il le restera. La cible commerciale, ce sont des patrons
+  // de cinquante à soixante ans ; beaucoup n'ont pas d'agenda en ligne et
+  // n'en auront jamais. `null` veut dire « cet artisan n'en a pas », et les
+  // textes envoyés au client prévoient ce cas (`docs/messages-client.md`).
+  //
+  // IL N'EST JAMAIS PROPOSÉ SUR UNE DEMANDE URGENTE. Prendre rendez-vous
+  // pour une fuite qui coule est absurde, et insultant.
+  lien_rdv: string | null
 }
 
 export type Demande = {
