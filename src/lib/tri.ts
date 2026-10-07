@@ -29,14 +29,104 @@
 import type { Demande } from '../types.ts'
 
 /**
+ * LE PLANCHER DE GRAVITÉ, DÉDUIT DES RÉPONSES DU CLIENT.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * POURQUOI IL EXISTE : UN DÉFAUT MESURÉ, PAS UNE PRÉCAUTION
+ * ─────────────────────────────────────────────────────────────────────────
+ * Le 7 octobre 2026, une demande réelle est arrivée avec « l'eau coule :
+ * oui », « arrivée coupée : non », et AUCUNE description — ce qui est
+ * permis depuis la phase 5. Le modèle, qui ne recevait que la description,
+ * n'avait rien à juger : il a rendu **gravité 1, motif « contenu
+ * manquant », panier 0 €**.
+ *
+ * Autrement dit : le client le plus urgent du logiciel, rangé en dernier.
+ * Silencieusement. Personne ne l'aurait su avant qu'un vrai plombier perde
+ * un vrai chantier.
+ *
+ * Le prompt a été corrigé et il tient — vérifié deux fois, avec un contrôle
+ * négatif propre (un devis de salle de bain à 8 000 € reste en gravité 1).
+ * Mais un prompt reste une CONSIGNE : rien ne garantit qu'un modèle la
+ * suivra toujours, et personne ne s'en apercevrait. Ce plancher, lui, est
+ * du calcul. Il ne dépend d'aucun modèle, d'aucun réseau, d'aucun service.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * CE QU'IL NE FAIT PAS
+ * ─────────────────────────────────────────────────────────────────────────
+ * Il ne BAISSE jamais rien. Si le modèle a vu dans la description quelque
+ * chose de plus grave que ce que les boutons disent, c'est le modèle qui
+ * gagne. Un plancher qui plafonnerait serait une censure.
+ *
+ * Il ne touche pas non plus à `gravite` en base : la réponse brute du
+ * modèle est conservée, comme toujours. L'écart entre les trois — modèle,
+ * plancher, correction de l'artisan — est ce qui permettra de juger si la
+ * classification vaut quelque chose.
+ *
+ * LIMITE CONNUE : l'e-mail d'alerte est composé par Make à partir de la
+ * seule réponse du modèle. Dans le cas rare où le plancher corrigerait le
+ * modèle, l'e-mail annoncerait une gravité plus basse que l'écran. L'écran
+ * fait foi. Le jour où ça gênera, il faudra que Make lise la colonne plutôt
+ * que sa propre variable.
+ */
+export function plancherReponses(d: Demande): number | null {
+  // L'EAU QUI COULE PASSE AVANT TOUT. Une fuite non maîtrisée abîme un
+  // logement à chaque minute ; c'est le seul cas où l'on sait, sans lire
+  // une ligne de description, qu'il faut y aller.
+  if (d.eau_coule === 'oui') {
+    // « Je ne sais pas » compte comme « non » : celui qui ignore s'il a
+    // coupé n'a, en pratique, pas coupé. Même arbitrage que pour le conseil
+    // affiché au client (`lib/conseil.ts`).
+    const coupee = d.arrivee_coupee === 'oui'
+    return coupee ? 2 : 3
+  }
+
+  // PLUS DE CHAUFFAGE OU PLUS D'EAU CHAUDE : 2, et pas davantage.
+  //
+  // J'avais d'abord écrit 3 d'octobre à mars, en me disant qu'une semaine
+  // sans chauffage en janvier est un danger. Les tests de la page de
+  // démonstration l'ont refusé, et ils avaient raison :
+  //
+  //   LA QUESTION MÉLANGE DEUX CHOSES. « Avez-vous encore du chauffage ET
+  //   de l'eau chaude ? » — un « non » peut vouloir dire « plus d'eau
+  //   chaude », qui est gênant, ou « plus de chauffage en janvier », qui
+  //   est dangereux. Le bouton ne permet pas de les distinguer, donc il ne
+  //   peut pas justifier une gravité 3.
+  //
+  // Un plancher ne doit affirmer que ce que les boutons PROUVENT. Ici ils
+  // prouvent une panne gênante : c'est 2. Le modèle, lui, lit la
+  // description et peut monter à 3 s'il y voit « plus aucun chauffage » —
+  // et le plancher ne l'en empêche pas, puisqu'il ne baisse jamais rien.
+  //
+  // Le jour où l'on séparera la question en deux, ce plancher pourra
+  // redevenir saisonnier. Pas avant.
+  if (d.chauffage_eau_chaude === 'non') return 2
+
+  return null
+}
+
+/**
  * La gravité qui FAIT FOI.
  *
- * `gravite` est l'estimation du modèle, et on ne l'efface jamais :
- * l'écart entre les deux est la donnée qui dira, dans six mois, si la
+ * TROIS AVIS, DANS CET ORDRE :
+ *
+ *  1. L'ARTISAN, s'il s'est prononcé. Il connaît son métier, il connaît sa
+ *     ville, et c'est lui qui se déplacera. Rien ne le contredit — surtout
+ *     pas un plancher calculé.
+ *  2. Sinon, le plus élevé entre l'estimation du modèle et le plancher
+ *     déduit des réponses du client.
+ *
+ * `gravite` est l'estimation brute du modèle, et on ne l'efface jamais :
+ * l'écart entre les avis est la donnée qui dira, dans six mois, si la
  * classification est juste.
  */
 export function graviteEffective(d: Demande): number | null {
-  return d.gravite_corrigee ?? d.gravite
+  // L'artisan a tranché : on ne le corrige pas.
+  if (d.gravite_corrigee !== null) return d.gravite_corrigee
+
+  const plancher = plancherReponses(d)
+  if (plancher === null) return d.gravite
+  if (d.gravite === null) return plancher
+  return Math.max(d.gravite, plancher)
 }
 
 /** Vrai si l'artisan a corrigé le modèle sur cette demande. */

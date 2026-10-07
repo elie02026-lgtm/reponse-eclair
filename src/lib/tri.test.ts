@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { trier, graviteEffective, estCorrigee } from './tri.ts'
+import { trier, graviteEffective, estCorrigee, plancherReponses } from './tri.ts'
 import type { Demande } from '../types.ts'
 
 // Se lance avec :  node --test
@@ -91,4 +91,89 @@ test('trier ne modifie pas le tableau d’origine', () => {
 
 test('un tableau vide ne casse rien', () => {
   assert.deepEqual(trier([]), [])
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// LE PLANCHER DE GRAVITÉ (7 octobre 2026)
+// ─────────────────────────────────────────────────────────────────────────
+// Posé après un défaut MESURÉ : une demande sans description, « l'eau coule
+// oui, pas coupée », a été classée gravité 1 par le modèle — le client le
+// plus urgent, rangé en dernier. Le prompt a été corrigé et il tient, mais
+// un prompt reste une consigne. Ceci est du calcul.
+
+
+test('L’EAU COULE ET RIEN N’EST COUPÉ : plancher 3, même si le modèle dit 1', () => {
+  // Le cas exact du 7 octobre.
+  const x = d({ id: 1, gravite: 1, eau_coule: 'oui', arrivee_coupee: 'non' })
+  assert.equal(plancherReponses(x), 3)
+  assert.equal(graviteEffective(x), 3)
+})
+
+test('« je ne sais pas » compte comme « non »', () => {
+  const x = d({ id: 1, gravite: 1, eau_coule: 'oui', arrivee_coupee: 'je-ne-sais-pas' })
+  assert.equal(graviteEffective(x), 3)
+})
+
+test('l’eau coule mais c’est coupé : plancher 2, pas 3', () => {
+  const x = d({ id: 1, gravite: 1, eau_coule: 'oui', arrivee_coupee: 'oui' })
+  assert.equal(graviteEffective(x), 2)
+})
+
+test('PLUS DE CHAUFFAGE OU D’EAU CHAUDE : 2, JAMAIS 3', () => {
+  // La question mélange deux choses : « plus d'eau chaude » est gênant,
+  // « plus de chauffage en janvier » est dangereux. Le bouton ne permet pas
+  // de les distinguer, donc il ne peut pas justifier une gravité 3. Un
+  // plancher n'affirme que ce que les boutons PROUVENT.
+  //
+  // Première version de ce plancher : 3 d'octobre à mars. Les tests de la
+  // page de démonstration l'ont refusée, et ils avaient raison — la panne
+  // d'eau chaude de Karim serait passée devant la fuite de Marc.
+  const x = d({ id: 1, gravite: 1, chauffage_eau_chaude: 'non' })
+  assert.equal(plancherReponses(x), 2)
+  assert.equal(graviteEffective(x), 2)
+})
+
+test('le modèle, lui, peut monter à 3 — le plancher ne l’en empêche pas', () => {
+  // S'il lit « plus aucun chauffage depuis trois jours » dans la
+  // description en janvier, il a vu ce que le bouton ne dit pas.
+  const x = d({ id: 1, gravite: 3, chauffage_eau_chaude: 'non' })
+  assert.equal(graviteEffective(x), 3)
+})
+
+test('LE PLANCHER NE BAISSE JAMAIS RIEN', () => {
+  // Si le modèle a lu dans la description quelque chose de plus grave que
+  // ce que les boutons disent, c'est le modèle qui gagne. Un plancher qui
+  // plafonnerait serait une censure.
+  const x = d({ id: 1, gravite: 3, eau_coule: 'oui', arrivee_coupee: 'oui' })
+  assert.equal(plancherReponses(x), 2)
+  assert.equal(graviteEffective(x), 3)
+})
+
+test('L’ARTISAN L’EMPORTE SUR LE PLANCHER', () => {
+  // Il connaît son métier, sa ville, et c'est lui qui se déplacera. Dire
+  // « pas si urgent » doit rester possible même sur une fuite déclarée.
+  const x = d({ id: 1, gravite: 3, gravite_corrigee: 1, eau_coule: 'oui', arrivee_coupee: 'non' })
+  assert.equal(graviteEffective(x), 1)
+})
+
+test('sans réponse à boutons, il n’y a pas de plancher', () => {
+  assert.equal(plancherReponses(d({ id: 1, gravite: 2 })), null)
+  assert.equal(graviteEffective(d({ id: 1, gravite: 2 })), 2)
+})
+
+test('une demande pas encore classée prend le plancher en attendant', () => {
+  // La classification arrive quinze à vingt-cinq secondes après l'écriture
+  // de la ligne. Pendant ce temps, une fuite déclarée doit déjà être en tête.
+  const x = d({ id: 1, gravite: null, eau_coule: 'oui', arrivee_coupee: 'non' })
+  assert.equal(graviteEffective(x), 3)
+})
+
+test('LE TRI SUIT LE PLANCHER : la fuite muette passe devant le gros devis', () => {
+  // Les trois lignes exactes mesurées en production le 7 octobre.
+  const fuiteMuette = d({ id: 1, gravite: 1, panier: 0, eau_coule: 'oui', arrivee_coupee: 'non' })
+  const grosDevis = d({ id: 2, gravite: 1, panier: 8000, eau_coule: 'non' })
+  assert.deepEqual(
+    trier([grosDevis, fuiteMuette]).map((x) => x.id),
+    [1, 2],
+  )
 })
