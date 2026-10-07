@@ -330,14 +330,23 @@ export default function Formulaire() {
               className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
             />
           </label>
+          {/* « COMMUNE » ÉTAIT DU VOCABULAIRE D'ADMINISTRATION.
+              Le mot est exact — c'est celui de l'INSEE et des mairies — mais
+              ce formulaire est rempli par quelqu'un qui a une fuite à ses
+              pieds, pas par un agent d'état civil. « Votre ville » se
+              comprend sans y penser, et c'est tout ce qu'on demande.
+              Le nom de la colonne en base, `lieu`, ne change pas : un
+              libellé d'écran et un nom de colonne n'ont aucune raison
+              d'être le même mot. */}
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-slate-700">Commune</span>
+            <span className="text-sm font-medium text-slate-700">Votre ville</span>
             <input
               type="text"
               autoComplete="address-level2"
               maxLength={BORNES.lieu}
               value={lieu}
               onChange={(e) => setLieu(e.target.value)}
+              placeholder="Montreuil"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
             />
           </label>
