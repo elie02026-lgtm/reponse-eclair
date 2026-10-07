@@ -1,56 +1,3 @@
-<!--
-  L'ALERTE ENVOYÉE À L'ARTISAN — gabarit à coller dans le module 4 de la
-  chaîne Make (« Integration Webhooks » → route 1 → google-email).
-
-  ───────────────────────────────────────────────────────────────────────────
-  CE QU'IL FAUT REMPLACER
-  ───────────────────────────────────────────────────────────────────────────
-  Chaque repère ci-dessous est en MAJUSCULES entre doubles accolades. Il faut
-  y mettre l'expression Make correspondante. Les numéros de module sont ceux
-  de CHAINE.md.
-
-    {{BASE}}             https://reponse-eclair.elie02026.workers.dev
-                         (en dur ; à changer le jour du vrai domaine)
-    {{ID_DEMANDE}}       l'identifiant rendu par le module 5 (l'insertion)
-    {{JETON_FAIT}}       2.jeton_fait          ← nouveau, envoyé par le Worker
-    {{JETON_PAS_URGENT}} 2.jeton_pas_urgent    ← nouveau, envoyé par le Worker
-    {{PRENOM}}           2.prenom
-    {{TELEPHONE}}        2.telephone           (au format +33…)
-    {{TEL_AFFICHE}}      2.telephone           (ou une version espacée)
-    {{LIEU}}             2.lieu
-    {{BESOIN}}           2.besoin
-    {{URGENCE_DITE}}     2.urgence_dite
-    {{REP_EAU}}          2.eau_coule           ← nouveau
-    {{REP_COUPEE}}       2.arrivee_coupee      ← nouveau
-    {{REP_CHAUFFAGE}}    2.chauffage_eau_chaude ← nouveau
-    {{GRAVITE}}          la gravité estimée, 0 à 3
-    {{MOTIF}}            le motif en deux ou trois mots
-
-  LE TROISIÈME CHAMP NOUVEAU, `2.cle_action`, NE VA PAS DANS CET E-MAIL.
-  Il va dans le module 5, la colonne `cle_action` de la table `demandes`.
-  C'est le secret ; les deux jetons n'en sont que des empreintes.
-
-  ───────────────────────────────────────────────────────────────────────────
-  POURQUOI DES TABLEAUX ET DES STYLES EN LIGNE
-  ───────────────────────────────────────────────────────────────────────────
-  Outlook rend le HTML avec le moteur de Word, qui ignore flexbox, grid, et
-  la plupart des feuilles de style. Un tableau et des attributs en ligne, en
-  revanche, marchent partout depuis vingt ans. Ce fichier est laid à lire ;
-  il est lisible sur tous les téléphones, et c'est ce qui compte.
-
-  ───────────────────────────────────────────────────────────────────────────
-  LES BOUTONS D'ACTION
-  ───────────────────────────────────────────────────────────────────────────
-  « C'est fait » et « Pas si urgent » OUVRENT une page qui demande
-  confirmation ; ils n'agissent pas tout seuls. C'est volontaire : certains
-  antivirus de messagerie suivent les liens à la livraison, et un lien qui
-  agirait au premier GET passerait des demandes en « rappelé » sans que
-  l'artisan ait appelé. Voir src/worker/page.ts.
-
-  Chaque lien ne peut faire QUE son opération : le jeton en est dérivé. Celui
-  qui a le lien « c'est fait » ne peut pas en déduire l'autre.
-  Validité : trente jours.
--->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
        style="background:#f8fafc;margin:0;padding:16px 0;">
   <tr>
@@ -67,15 +14,15 @@
             <!-- L'INFORMATION LA PLUS UTILE EN PREMIER : qui, et quoi.
                  Un artisan lit cet e-mail debout, sur un chantier. -->
             <div style="font-size:24px;font-weight:700;margin:6px 0 2px;">
-              {{PRENOM}} — {{MOTIF}}
+              {{ifempty(2.prenom; "Sans nom")}} — {{ifempty(trim(get(split(9.result; "|"); 2)); "à juger vous-même")}}
             </div>
-            <div style="font-size:15px;color:#475569;">{{LIEU}}</div>
+            <div style="font-size:15px;color:#475569;">{{ifempty(2.lieu; "lieu non précisé")}}</div>
           </td>
         </tr>
 
         <tr>
           <td style="padding:16px 22px 0 22px;">
-            <div style="font-size:17px;line-height:1.5;">{{BESOIN}}</div>
+            <div style="font-size:17px;line-height:1.5;">{{ifempty(2.besoin; "Pas de description. Voyez ses reponses ci-dessous.")}}</div>
           </td>
         </tr>
 
@@ -88,9 +35,9 @@
           <td style="padding:12px 22px 0 22px;">
             <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
                         padding:10px 12px;font-size:14px;color:#334155;line-height:1.6;">
-              L’eau coule : <strong>{{REP_EAU}}</strong><br>
-              Arrivée d’eau coupée : <strong>{{REP_COUPEE}}</strong><br>
-              Chauffage et eau chaude : <strong>{{REP_CHAUFFAGE}}</strong>
+              L’eau coule : <strong>{{ifempty(2.eau_coule; "non renseigné")}}</strong><br>
+              Arrivée d’eau coupée : <strong>{{ifempty(2.arrivee_coupee; "non renseigné")}}</strong><br>
+              Chauffage et eau chaude : <strong>{{ifempty(2.chauffage_eau_chaude; "non renseigné")}}</strong>
             </div>
           </td>
         </tr>
@@ -105,7 +52,7 @@
                   <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;
                               padding:10px 12px;">
                     <div style="font-size:13px;font-weight:700;color:#991b1b;">
-                      Gravité estimée : {{GRAVITE}}/3
+                      Gravité estimée : {{ifempty(trim(get(split(9.result; "|"); 1)); "?")}}/3
                     </div>
                     <div style="font-size:13px;color:#b91c1c;">d’après ce qu’il a écrit</div>
                   </div>
@@ -114,7 +61,7 @@
                   <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
                               padding:10px 12px;">
                     <div style="font-size:13px;font-weight:700;color:#334155;">Le client a coché</div>
-                    <div style="font-size:13px;color:#475569;">{{URGENCE_DITE}}</div>
+                    <div style="font-size:13px;color:#475569;">{{2.urgence_dite}}</div>
                   </div>
                 </td>
               </tr>
@@ -126,18 +73,18 @@
              sa ligne. 56 px de haut, pour un pouce et pas une souris. -->
         <tr>
           <td style="padding:18px 22px 0 22px;">
-            <a href="tel:{{TELEPHONE}}"
+            <a href="tel:{{2.telephone}}"
                style="display:block;background:#0f172a;color:#ffffff;text-decoration:none;
                       font-size:18px;font-weight:700;text-align:center;
                       padding:18px 16px;border-radius:12px;">
-              Appeler {{TEL_AFFICHE}}
+              Appeler {{2.telephone}}
             </a>
           </td>
         </tr>
 
         <tr>
           <td style="padding:10px 22px 0 22px;">
-            <a href="https://www.google.com/maps/dir/?api=1&amp;destination={{LIEU}}"
+            <a href="https://www.google.com/maps/dir/?api=1&amp;destination={{encodeURL(2.lieu)}}"
                style="display:block;background:#ffffff;color:#0f172a;text-decoration:none;
                       border:1px solid #cbd5e1;font-size:16px;font-weight:600;text-align:center;
                       padding:15px 16px;border-radius:12px;">
@@ -158,7 +105,7 @@
         <!-- LES DEUX ACTIONS SANS CONNEXION -->
         <tr>
           <td style="padding:10px 22px 0 22px;">
-            <a href="{{BASE}}/agir?d={{ID_DEMANDE}}&amp;j={{JETON_FAIT}}&amp;op=fait"
+            <a href="https://reponse-eclair.elie02026.workers.dev/agir?d={{5.data.id}}&amp;j={{2.jeton_fait}}&amp;op=fait"
                style="display:block;background:#15803d;color:#ffffff;text-decoration:none;
                       font-size:17px;font-weight:700;text-align:center;
                       padding:17px 16px;border-radius:12px;">
@@ -169,7 +116,7 @@
 
         <tr>
           <td style="padding:10px 22px 0 22px;">
-            <a href="{{BASE}}/agir?d={{ID_DEMANDE}}&amp;j={{JETON_PAS_URGENT}}&amp;op=pas_urgent"
+            <a href="https://reponse-eclair.elie02026.workers.dev/agir?d={{5.data.id}}&amp;j={{2.jeton_pas_urgent}}&amp;op=pas_urgent"
                style="display:block;background:#ffffff;color:#0f172a;text-decoration:none;
                       border:1px solid #cbd5e1;font-size:16px;font-weight:600;text-align:center;
                       padding:15px 16px;border-radius:12px;">
@@ -182,7 +129,7 @@
           <td style="padding:18px 22px 22px 22px;">
             <div style="font-size:13px;color:#94a3b8;line-height:1.5;">
               Ces deux boutons sont valables trente jours.
-              <a href="{{BASE}}/" style="color:#64748b;">Ouvrir mon écran</a>
+              <a href="https://reponse-eclair.elie02026.workers.dev/" style="color:#64748b;">Ouvrir mon écran</a>
             </div>
           </td>
         </tr>
