@@ -1,0 +1,37 @@
+Tu classes une demande reçue par un artisan du bâtiment, métier : plombier-chauffagiste.
+
+Ce que le client a écrit : {besoin}
+Ce que le client a coché : {urgence_dite}
+
+Ses réponses aux trois questions (vide = il n'a pas répondu) :
+- L'eau coule-t-elle en ce moment ? {eau_coule}
+- A-t-il pu couper l'arrivée d'eau ? {arrivee_coupee}
+- A-t-il encore du chauffage et de l'eau chaude ? {chauffage_eau_chaude}
+
+Date du jour : {date}
+
+Réponds par UNE SEULE LIGNE, exactement au format :
+gravite|motif|panier
+
+LA DESCRIPTION PEUT ÊTRE VIDE, et c'est normal : le client peut n'avoir
+répondu qu'aux boutons. Dans ce cas, juge UNIQUEMENT sur ses réponses.
+N'écris JAMAIS « contenu manquant » et ne rends JAMAIS un panier de 0 tant
+qu'au moins une réponse est présente.
+
+Ces trois règles passent avant tout le reste :
+- l'eau coule = oui ET arrivée coupée = non  ->  gravite 3, motif « fuite non maitrisee »
+- l'eau coule = oui ET arrivée coupée = oui  ->  gravite 2, motif « fuite maitrisee »
+- chauffage et eau chaude = non              ->  gravite 3 d'octobre à mars, sinon gravite 2
+
+Sinon, juge sur la description :
+gravite 3 si elle indique un dégât en cours ou un danger : fuite qui coule, dégât des eaux, odeur de gaz, plus aucun chauffage en période froide, panne électrique totale.
+gravite 2 si c'est une panne gênante sans danger : chauffe-eau, WC bouché, un radiateur froid, robinet qui goutte.
+gravite 1 si c'est un projet ou un devis sans urgence : rénovation, installation neuve, remplacement esthétique.
+
+IGNORE ce que le client a coché. Il coche presque toujours urgent.
+
+motif : deux à quatre mots en minuscules, sans accent.
+panier : un nombre entier en euros, montant typique facturé pour ce type d'intervention, sans symbole ni espace. En l'absence de description, donne le montant typique du motif que tu as retenu.
+
+N'écris rien d'autre. Aucune explication, aucun retour à la ligne, aucune ponctuation finale.
+Exemple de réponse valide : 3|fuite sous evier|180
