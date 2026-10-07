@@ -29,13 +29,22 @@
 import { validerDemande } from '../lib/demandeRecue.ts'
 import {
   estOperation,
+  estOperationPromesse,
   jetonPour,
   jetonValide,
   lireIdDemande,
   nouvelleCleAction,
   reponseDe,
 } from '../lib/action.ts'
-import { pageConfirmation, pageLienIllisible, pageResultat } from './page.ts'
+import type { OperationPromesse } from '../lib/action.ts'
+import { envoiDe, reponsePromesse } from '../lib/promesse.ts'
+import type { ReponsePromesse } from '../lib/promesse.ts'
+import {
+  pageConfirmation,
+  pageLienIllisible,
+  pageResultat,
+  pageResultatPromesse,
+} from './page.ts'
 import type { Gestionnaire } from './types.ts'
 
 /** Le chemin des boutons de l'e-mail d'alerte. Déclaré dans
@@ -121,6 +130,44 @@ async function agir(
   return typeof mot === 'string' ? mot : 'panne'
 }
 
+/**
+ * LA PROMESSE DE RAPPEL (phase 5 bis) — `promettre_rappel`, migration 0018.
+ *
+ * Une seconde porte, séparée de `agir_sur_demande`, PARCE QUE CELLE-CI LIT.
+ * Elle rend le numéro du client et le nom de l'entreprise : on ne peut pas
+ * prévenir quelqu'un sans savoir où, ni signer un message sans nom. Les deux
+ * boutons « c'est fait » et « pas si urgent », eux, ne rendent toujours rien
+ * — et c'est en ne mêlant pas les deux fonctions qu'on le garde vrai.
+ *
+ * Même clé publiable, même rôle `anon`, même absence de droit sur la table.
+ */
+async function promettre(
+  env: { SUPABASE_URL: string; SUPABASE_CLE_PUBLIABLE: string },
+  id: number,
+  jeton: string,
+  operation: OperationPromesse,
+): Promise<ReponsePromesse> {
+  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/promettre_rappel`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_CLE_PUBLIABLE,
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ p_id: id, p_jeton: jeton, p_operation: operation }),
+    signal: AbortSignal.timeout(DELAI_MAKE_MS),
+  })
+  if (!r.ok) {
+    console.error(`[${CHEMIN_ACTION}] base en erreur : ${r.status}`)
+    return { resultat: 'panne' }
+  }
+  // La fonction rend un `jsonb`. On ne le croit pas sur parole : `envoiDe` et
+  // `reponsePromesse` vérifient chaque champ, parce que ceci vient du réseau.
+  const corps: unknown = await r.json()
+  if (typeof corps !== 'object' || corps === null) return { resultat: 'panne' }
+  return corps as ReponsePromesse
+}
+
 // AUCUN en-tête CORS, et ce n'est pas un oubli. Le formulaire est servi par
 // la même origine, il n'en a pas besoin. Leur absence empêche la page d'un
 // autre site d'appeler cet endpoint depuis un navigateur — mais elle
@@ -161,6 +208,14 @@ const gestionnaire: Gestionnaire = {
         const op = String(formulaire.get('op') ?? '')
         if (id === null || !jetonValide(jeton) || !estOperation(op)) {
           return html(400, pageLienIllisible())
+        }
+
+        // LES TROIS DÉLAIS DE RAPPEL vont à l'autre fonction, et rendent une
+        // page qui porte le dernier geste : le message à envoyer au client.
+        if (estOperationPromesse(op)) {
+          const brut = await promettre(env, id, jeton, op)
+          const reponse = reponsePromesse(String(brut.resultat ?? 'panne'))
+          return html(reponse.bon ? 200 : 400, pageResultatPromesse(reponse, envoiDe(op, brut)))
         }
 
         const mot = await agir(env, id, jeton, op)
@@ -256,12 +311,21 @@ const gestionnaire: Gestionnaire = {
     //
     // Celui qui détient un lien ne peut pas en déduire l'autre : il lui
     // faudrait `cle_action`, qui ne quitte jamais la base.
+    //
+    // CINQ JETONS DEPUIS LA PHASE 5 BIS, et toujours UNE SEULE clé. Les trois
+    // délais de rappel en ont chacun le leur : celui qui détient le lien
+    // « 15 min » ne peut pas en déduire celui de « ce soir », et aucun des
+    // cinq ne permet de remonter à `cle_action`. Cinq SHA-256 par demande,
+    // c'est de l'ordre de la microseconde.
     const cleAction = nouvelleCleAction()
     const avecCles = {
       ...demande,
       cle_action: cleAction,
       jeton_fait: await jetonPour(cleAction, 'fait'),
       jeton_pas_urgent: await jetonPour(cleAction, 'pas_urgent'),
+      jeton_15min: await jetonPour(cleAction, 'promesse_15min'),
+      jeton_1h: await jetonPour(cleAction, 'promesse_1h'),
+      jeton_ce_soir: await jetonPour(cleAction, 'promesse_fin_de_journee'),
     }
 
     // ── 8. Make ─────────────────────────────────────────────────────────

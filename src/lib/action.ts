@@ -16,13 +16,44 @@
 // d'à côté les compare sur une valeur relevée dans la vraie base : si l'une
 // des deux dérive un jour, il tombe.
 
-/** Les deux boutons de l'e-mail. Liste blanche : Postgres a la même, et
- *  refuse tout le reste (`operation_inconnue`). */
-export const OPERATIONS = ['fait', 'pas_urgent'] as const
+import { TITRE_CONFIRMATION } from '../config/promesse.ts'
+
+/** Ce qu'on fait d'une demande DÉJÀ TRAITÉE. Ces deux-là ne rendent aucune
+ *  donnée : ils passent par `agir_sur_demande` (migration 0014). */
+export const OPERATIONS_DEMANDE = ['fait', 'pas_urgent'] as const
+
+/**
+ * LES TROIS DÉLAIS DE RAPPEL (phase 5 bis).
+ *
+ * Séparés des deux autres, et pas par goût du rangement : ils ne vont pas à
+ * la même fonction de la base, et surtout ILS LISENT. `promettre_rappel`
+ * (migration 0018) rend le numéro du client, parce qu'on ne peut pas
+ * prévenir quelqu'un sans savoir où. Les deux ci-dessus, non — et c'est une
+ * propriété qu'on garde en ne mélangeant pas les deux portes.
+ *
+ * Vérifié dans la vraie base : le jeton de « c'est fait » ne promet rien
+ * (contrôle C11), et `agir_sur_demande` refuse une opération de promesse
+ * (C13). Les deux listes blanches existent aussi en SQL.
+ */
+export const OPERATIONS_PROMESSE = [
+  'promesse_15min',
+  'promesse_1h',
+  'promesse_fin_de_journee',
+] as const
+
+/** Tout ce qu'une adresse `/agir` peut porter. Liste blanche : Postgres a la
+ *  même, et refuse tout le reste (`operation_inconnue`). */
+export const OPERATIONS = [...OPERATIONS_DEMANDE, ...OPERATIONS_PROMESSE] as const
 export type Operation = (typeof OPERATIONS)[number]
+export type OperationPromesse = (typeof OPERATIONS_PROMESSE)[number]
 
 export function estOperation(valeur: string): valeur is Operation {
   return (OPERATIONS as readonly string[]).includes(valeur)
+}
+
+/** Laquelle des deux fonctions de la base il faut appeler. */
+export function estOperationPromesse(valeur: Operation): valeur is OperationPromesse {
+  return (OPERATIONS_PROMESSE as readonly string[]).includes(valeur)
 }
 
 /** Un jeton est l'empreinte SHA-256 en hexadécimal minuscule : 64 caractères,
@@ -93,10 +124,26 @@ export const REPONSES: Record<string, Reponse> = {
     titre: 'C’est noté.',
     detail: 'Vous pouvez fermer cette page.',
   },
+  // Phase 5 bis : il a touché deux fois le même délai, à quelques secondes.
+  // C'est un SUCCÈS — sa promesse est enregistrée — mais on ne lui propose
+  // pas de redire la même chose à son client. Voir `promettre_rappel`.
+  inchange: {
+    bon: true,
+    titre: 'C’est déjà noté.',
+    detail: 'Vous venez de le dire. Vous pouvez fermer cette page.',
+  },
   expire: {
     bon: false,
     titre: 'Ce lien a expiré.',
     detail: 'Les liens des alertes sont valables trente jours. Ouvrez votre écran pour agir.',
+  },
+  // Un délai de rappel, lui, ne vaut que 48 h : « je vous rappelle dans
+  // 15 minutes » ne veut rien dire trois semaines plus tard.
+  expire_promesse: {
+    bon: false,
+    titre: 'Cette demande est trop ancienne.',
+    detail:
+      'On ne peut annoncer un rappel que dans les deux jours qui suivent la demande. Ouvrez votre écran pour agir.',
   },
   refuse: {
     bon: false,
@@ -132,4 +179,10 @@ export function reponseDe(resultat: string): Reponse {
 export const LIBELLE_OPERATION: Record<Operation, string> = {
   fait: 'Marquer comme rappelé',
   pas_urgent: 'Signaler que ce n’est pas si urgent',
+  // Les trois délais sont écrits EN ENTIER, et importés du fichier de textes.
+  // C'est la dernière chose que l'artisan lit avant de s'engager : « 15 min »
+  // sur le bouton de l'e-mail suffit pour choisir, pas pour promettre.
+  promesse_15min: TITRE_CONFIRMATION['15min'],
+  promesse_1h: TITRE_CONFIRMATION['1h'],
+  promesse_fin_de_journee: TITRE_CONFIRMATION.fin_de_journee,
 }

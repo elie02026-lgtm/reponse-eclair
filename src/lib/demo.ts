@@ -53,6 +53,10 @@ function ilYA(minutes: number): string {
  * à la fiction : aucun vrai téléphone ne sonnera jamais.
  *
  * Les communes sont en Île-de-France : c'est la cible commerciale.
+ *
+ * AUCUNE DES QUATRE NE PORTE DE PROMESSE DE RAPPEL, et c'est volontaire.
+ * Cette page montre le TRI ; une promesse déjà prise laisserait croire au
+ * prospect que le logiciel s'engage tout seul, ce qu'il ne fera jamais.
  */
 export const DEMANDES_DEMO: Demande[] = [
   {
@@ -77,6 +81,8 @@ export const DEMANDES_DEMO: Demande[] = [
     gravite_corrigee: null,
     corrigee_le: null,
     cle_action: null,
+    promesse: null,
+    promesse_le: null,
     eau_coule: null,
     arrivee_coupee: null,
     chauffage_eau_chaude: null,
@@ -103,6 +109,8 @@ export const DEMANDES_DEMO: Demande[] = [
     gravite_corrigee: null,
     corrigee_le: null,
     cle_action: null,
+    promesse: null,
+    promesse_le: null,
     eau_coule: 'non',
     arrivee_coupee: null,
     chauffage_eau_chaude: 'non',
@@ -129,6 +137,8 @@ export const DEMANDES_DEMO: Demande[] = [
     gravite_corrigee: null,
     corrigee_le: null,
     cle_action: null,
+    promesse: null,
+    promesse_le: null,
     eau_coule: null,
     arrivee_coupee: null,
     chauffage_eau_chaude: null,
@@ -155,6 +165,8 @@ export const DEMANDES_DEMO: Demande[] = [
     gravite_corrigee: null,
     corrigee_le: null,
     cle_action: null,
+    promesse: null,
+    promesse_le: null,
     // Ce que Marc a répondu aux trois questions. C'est ce qui justifie la
     // gravité 3 : l'eau coule ENCORE et rien n'est coupé. Un visiteur doit
     // voir que le classement ne sort pas d'un chapeau.

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LIBELLE_STATUT, STATUTS } from './types'
+import { LIBELLE_DELAI, LIBELLE_STATUT, STATUTS, estDelai } from './types'
 import { lireTelephone } from './lib/telephone'
 import { graviteEffective, estCorrigee } from './lib/tri'
 import type { Demande, Statut } from './types'
@@ -162,6 +162,27 @@ export default function CarteDemande({
             <li>Chauffage et eau chaude : {LIBELLE_REPONSE[d.chauffage_eau_chaude]}</li>
           )}
         </ul>
+      )}
+
+      {/* CE QU'IL A PROMIS LUI-MÊME (migration 0018, phase 5 bis).
+          Enregistré sans être montré, cet engagement n'existerait que pour la
+          machine — et l'artisan rappellerait sans savoir ce qu'il a annoncé,
+          ce qui est pire que de n'avoir rien annoncé.
+
+          « VOUS AVEZ DIT », ET JAMAIS « VOTRE CLIENT SAIT ». La base
+          enregistre son engagement à lui ; tant que le message part de son
+          téléphone, rien ne prouve qu'il a appuyé sur « Envoyer ». Écrire
+          « prévenu » serait affirmer ce qu'on ne sait pas. */}
+      {estDelai(d.promesse) && (
+        <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900 ring-1 ring-emerald-200">
+          <span className="font-semibold">Vous avez dit : rappel {LIBELLE_DELAI[d.promesse]}</span>
+          {d.promesse_le && (
+            <span className="opacity-80">
+              {' '}
+              — annoncé le {dateCourte.format(new Date(d.promesse_le))}
+            </span>
+          )}
+        </div>
       )}
 
       <div className="mt-3 flex gap-2">

@@ -12,8 +12,11 @@
     {{BASE}}             https://reponse-eclair.elie02026.workers.dev
                          (en dur ; à changer le jour du vrai domaine)
     {{ID_DEMANDE}}       l'identifiant rendu par le module 5 (l'insertion)
-    {{JETON_FAIT}}       2.jeton_fait          ← nouveau, envoyé par le Worker
-    {{JETON_PAS_URGENT}} 2.jeton_pas_urgent    ← nouveau, envoyé par le Worker
+    {{JETON_FAIT}}       2.jeton_fait
+    {{JETON_PAS_URGENT}} 2.jeton_pas_urgent
+    {{JETON_15MIN}}      2.jeton_15min         ← phase 5 bis
+    {{JETON_1H}}         2.jeton_1h            ← phase 5 bis
+    {{JETON_CE_SOIR}}    2.jeton_ce_soir       ← phase 5 bis
     {{PRENOM}}           2.prenom
     {{TELEPHONE}}        2.telephone           (au format +33…)
     {{TEL_AFFICHE}}      2.telephone           (ou une version espacée)
@@ -48,8 +51,11 @@
   l'artisan ait appelé. Voir src/worker/page.ts.
 
   Chaque lien ne peut faire QUE son opération : le jeton en est dérivé. Celui
-  qui a le lien « c'est fait » ne peut pas en déduire l'autre.
-  Validité : trente jours.
+  qui a le lien « c'est fait » ne peut pas en déduire les quatre autres.
+
+  Validité : TRENTE JOURS pour « c'est fait » et « pas si urgent »,
+  QUARANTE-HUIT HEURES pour les trois délais de rappel. « Je vous rappelle
+  dans 15 minutes » ne veut rien dire trois semaines plus tard.
 -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
        style="background:#f8fafc;margin:0;padding:16px 0;">
@@ -146,6 +152,61 @@
           </td>
         </tr>
 
+        <!-- LES TROIS DÉLAIS DE RAPPEL (phase 5 bis).
+             PLACÉS AVANT « c'est fait », parce que c'est l'ordre des gestes :
+             on dit quand on rappelle, PUIS on rappelle, PUIS on coche. Un
+             artisan qui lit de haut en bas, debout sur un chantier, doit
+             trouver ici ce qui lui sert MAINTENANT.
+
+             Chaque bouton ouvre une page qui montre le message, et c'est lui
+             qui l'envoie depuis son téléphone : le message part de son
+             numéro, et son client peut répondre.
+
+             Ces trois liens ne valent que QUARANTE-HUIT HEURES, là où les
+             deux du bas en ont trente jours — « je vous rappelle dans
+             15 minutes » ne veut rien dire trois semaines plus tard. -->
+        <tr>
+          <td style="padding:20px 22px 0 22px;">
+            <div style="border-top:1px solid #e2e8f0;padding-top:16px;
+                        font-size:14px;color:#64748b;">
+              Vous ne pouvez pas appeler tout de suite ? Dites-lui quand vous le rappelez.
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:10px 22px 0 22px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td width="33%" valign="top" style="padding-right:4px;">
+                  <a href="{{BASE}}/agir?d={{ID_DEMANDE}}&amp;j={{JETON_15MIN}}&amp;op=promesse_15min"
+                     style="display:block;background:#ffffff;color:#0f172a;text-decoration:none;
+                            border:1px solid #94a3b8;font-size:16px;font-weight:700;
+                            text-align:center;padding:16px 4px;border-radius:12px;">
+                    15 min
+                  </a>
+                </td>
+                <td width="34%" valign="top" style="padding:0 4px;">
+                  <a href="{{BASE}}/agir?d={{ID_DEMANDE}}&amp;j={{JETON_1H}}&amp;op=promesse_1h"
+                     style="display:block;background:#ffffff;color:#0f172a;text-decoration:none;
+                            border:1px solid #94a3b8;font-size:16px;font-weight:700;
+                            text-align:center;padding:16px 4px;border-radius:12px;">
+                    1 heure
+                  </a>
+                </td>
+                <td width="33%" valign="top" style="padding-left:4px;">
+                  <a href="{{BASE}}/agir?d={{ID_DEMANDE}}&amp;j={{JETON_CE_SOIR}}&amp;op=promesse_fin_de_journee"
+                     style="display:block;background:#ffffff;color:#0f172a;text-decoration:none;
+                            border:1px solid #94a3b8;font-size:16px;font-weight:700;
+                            text-align:center;padding:16px 4px;border-radius:12px;">
+                    Ce soir
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
         <tr>
           <td style="padding:20px 22px 0 22px;">
             <div style="border-top:1px solid #e2e8f0;padding-top:16px;
@@ -181,7 +242,7 @@
         <tr>
           <td style="padding:18px 22px 22px 22px;">
             <div style="font-size:13px;color:#94a3b8;line-height:1.5;">
-              Ces deux boutons sont valables trente jours.
+              Ces deux boutons sont valables trente jours, les trois délais de rappel deux jours.
               <a href="{{BASE}}/" style="color:#64748b;">Ouvrir mon écran</a>
             </div>
           </td>

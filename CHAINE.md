@@ -91,6 +91,42 @@ analyser. Le jeton de 64 caractères hexadécimaux survit à cette réécriture.
 Tous mes essais précédents utilisaient `curl` sur l'URL brute et ne
 touchaient donc pas ce maillon.
 
+### PHASE 5 BIS — LA PROMESSE DE RAPPEL : TROIS LIENS DE PLUS, RIEN D'AUTRE
+
+Depuis le 7 octobre, le Worker envoie **trois jetons supplémentaires** dans
+la même charge utile : `jeton_15min`, `jeton_1h`, `jeton_ce_soir`. Ils
+dérivent de la même `cle_action`, par le même SHA-256.
+
+**CE QUI NE CHANGE PAS, ET C'EST L'ESSENTIEL :**
+
+- **le module 5 (l'insertion) ne change pas d'un champ.** Les trois jetons ne
+  sont stockés nulle part — Postgres les recalcule à chaque clic depuis
+  `cle_action`. La table reçoit toujours ses onze champs ;
+- **zéro opération de plus.** Une exécution coûte toujours 7 à 8 opérations ;
+- **aucun calcul côté Make.** Il recopie trois chaînes de plus.
+
+**CE QU'IL Y A À FAIRE DANS MAKE :** recoller le gabarit du module 4 depuis
+`courriel/alerte-artisan-A-COLLER.txt`. C'est tout. Les trois nouveaux
+boutons y sont, avec leurs expressions `{{2.jeton_…}}` déjà écrites.
+
+Un test du dépôt (`src/worker/alerte.test.ts`) compare la liste blanche des
+opérations, les champs que le Worker pose, et les liens du fichier à coller.
+Si les trois divergent, il tombe. **Ce qu'il ne peut pas vérifier : que le
+gabarit collé DANS Make est bien celui du dépôt.** Personne ne peut le
+prouver d'ici.
+
+**Validité des liens : 48 h pour les trois délais**, contre trente jours pour
+« c'est fait » et « pas si urgent ». « Je vous rappelle dans 15 minutes » ne
+veut rien dire trois semaines plus tard, et un pouce glisse dans une boîte
+mail.
+
+**L'ENVOI DU SMS NE PASSE PAS PAR MAKE.** L'artisan touche un bouton, la page
+lui montre le message, et il l'envoie **depuis son propre téléphone** par un
+lien `sms:` déjà rempli. Donc : pas de troisième scénario à activer, pas de
+numéro Twilio requis, et le message part de son numéro — son client peut
+répondre. Le jour où un numéro sera acheté, le Worker pourra envoyer
+lui-même, et ce sera un toucher au lieu de deux.
+
 ### LE DÉFAUT QUE CE MÊME TEST A RÉVÉLÉ, DEUX HEURES PLUS TÔT
 
 À 9 h 49, la même demande — sans description — est sortie en **gravité 1,

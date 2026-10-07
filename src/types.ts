@@ -41,6 +41,39 @@ export const LIBELLE_METIER: Record<Metier, string> = {
   'plombier-chauffagiste': 'Plombier-chauffagiste',
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// LE DÉLAI DE RAPPEL QUE L'ARTISAN S'ENGAGE À TENIR (phase 5 bis)
+// ─────────────────────────────────────────────────────────────────────────
+// Trois valeurs, parce que c'est le nombre qu'un pouce choisit sans
+// réfléchir — et parce qu'au-delà, l'artisan lit au lieu de toucher.
+//
+// CE SONT DES MOTS, PAS DES MINUTES. « Fin de journée » n'est pas une durée :
+// l'écrire 420 minutes serait inventer une précision que l'artisan n'a pas
+// donnée, et le reste du logiciel s'en servirait comme d'un fait. On garde le
+// mot qu'il a touché ; le délai exact, personne ne le connaît.
+//
+// La base porte la même liste en contrainte `check` (migration 0018) : si
+// l'écran et la base divergeaient un jour, Postgres refuserait l'écriture au
+// lieu de laisser passer une valeur que personne ne sait afficher.
+export const DELAIS = ['15min', '1h', 'fin_de_journee'] as const
+export type Delai = (typeof DELAIS)[number]
+
+/** Ce que l'ARTISAN relit sur sa fiche, une fois qu'il s'est engagé. Ce que
+ *  le CLIENT lira dans son SMS est ailleurs, dans `config/promesse.ts` : ce
+ *  sont deux textes différents, et les mêler ferait qu'en corriger un
+ *  changerait l'autre. */
+export const LIBELLE_DELAI: Record<Delai, string> = {
+  '15min': 'dans 15 min',
+  '1h': 'dans une heure',
+  fin_de_journee: 'en fin de journée',
+}
+
+/** `promesse` arrive du réseau comme une chaîne quelconque. On ne la traite
+ *  comme un délai qu'après l'avoir reconnue. */
+export function estDelai(valeur: string | null): valeur is Delai {
+  return valeur !== null && (DELAIS as readonly string[]).includes(valeur)
+}
+
 export type Artisan = {
   id: string
   entreprise: string
@@ -108,6 +141,24 @@ export type Demande = {
   eau_coule: string | null
   arrivee_coupee: string | null
   chauffage_eau_chaude: string | null
+
+  // ─── Migration 0018 : la promesse de rappel (phase 5 bis) ───
+  //
+  // Le délai que l'artisan a CHOISI LUI-MÊME en touchant un bouton de son
+  // e-mail. `null` tant qu'il ne s'est engagé à rien, et c'est le cas
+  // ordinaire : rien d'automatique n'écrit jamais ici. C'est la RÈGLE D'OR
+  // du projet — on n'annonce jamais au client un délai que l'artisan n'a pas
+  // choisi.
+  //
+  // `promesse_le` est une date sur LUI, pas sur son client : elle dit qu'il
+  // s'est engagé, pas que le message est parti. L'écran écrit donc « vous
+  // avez dit », jamais « votre client sait ».
+  //
+  // Il ne peut pas les réécrire depuis l'application : la 0014 a retiré
+  // `update` sur toute la table pour ne rendre que cinq colonnes nommées, et
+  // celles-ci n'y sont pas. Seul l'e-mail engage.
+  promesse: string | null
+  promesse_le: string | null
 
   // Le secret qui autorise les boutons de l'e-mail d'alerte. L'artisan peut
   // le lire — c'est le sien — mais il ne peut PAS l'écrire : la migration

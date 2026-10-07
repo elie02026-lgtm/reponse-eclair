@@ -1,7 +1,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { pageConfirmation, pageResultat, pageLienIllisible } from './page.ts'
+import {
+  pageConfirmation,
+  pageResultat,
+  pageLienIllisible,
+  pageResultatPromesse,
+} from './page.ts'
 import { reponseDe, LIBELLE_OPERATION } from '../lib/action.ts'
+import { reponsePromesse } from '../lib/promesse.ts'
+import type { Envoi } from '../lib/promesse.ts'
 
 // Se lance avec :  node --test
 //
@@ -96,6 +103,86 @@ test('toutes les pages proposent une porte de sortie vers l’écran', () => {
   for (const page of [pageResultat(reponseDe('ok')), pageLienIllisible()]) {
     assert.match(page, /href="\/"/)
   }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// LA PROMESSE DE RAPPEL (phase 5 bis)
+// ─────────────────────────────────────────────────────────────────────────
+
+const ENVOI: Envoi = {
+  lien: 'sms:+33612345678?&body=Bonjour',
+  texte: "Bonjour, c'est Plomberie Martin. Je vous rappelle dans 15 minutes.",
+  numero: '06 12 34 56 78',
+  deja: false,
+}
+
+test('L’APERÇU DU MESSAGE EST LÀ AVANT QU’IL S’ENGAGE', () => {
+  // RÈGLE D'OR : on n'annonce jamais au client un délai que l'artisan n'a pas
+  // choisi lui-même. Il doit donc lire la phrase exacte AVANT de toucher.
+  const page = pageConfirmation('/agir', 42, JETON, 'promesse_15min')
+  assert.match(page, /Je vous rappelle dans 15 minutes/)
+  assert.match(page, /Rien n’a encore été enregistré/)
+})
+
+test('LA PAGE DE CONFIRMATION D’UNE PROMESSE NE LIT RIEN NON PLUS', () => {
+  // C'est la propriété qui protège du « Safe Links » de Microsoft et des
+  // antivirus de messagerie : ils OUVRENT les liens à la livraison. Tout ce
+  // que cet écran afficherait, un service tiers le lirait avant l'artisan.
+  // Le nom de l'entreprise y est donc remplacé par un repère.
+  for (const op of ['promesse_15min', 'promesse_1h', 'promesse_fin_de_journee'] as const) {
+    const page = pageConfirmation('/agir', 42, JETON, op)
+    for (const interdit of ['+33', '@', 'Marc', 'Paris', 'Plomberie']) {
+      assert.ok(!page.includes(interdit), `« ${interdit} » apparaît pour ${op}`)
+    }
+    assert.match(page, /<form method="post"/)
+  }
+})
+
+test('LA PAGE DE RÉSULTAT DIT QUE RIEN N’EST ENCORE PARTI', () => {
+  // La panne muette qu'il faut empêcher : l'artisan referme son écran en
+  // croyant son client prévenu, alors qu'il reste un bouton à toucher.
+  const page = pageResultatPromesse(reponsePromesse('ok'), ENVOI)
+  assert.match(page, /Il reste à le lui envoyer/)
+  assert.match(page, /Envoyer à mon client/)
+  assert.ok(page.includes('sms:+33612345678'), 'le lien d’envoi manque')
+
+  // Le message exact est montré, à l'échappement près : l'apostrophe sort en
+  // `&#39;`. C'est le gabarit qui fait son travail — rien de ce qui vient de
+  // la base n'entre dans la page sans passer par `h()`.
+  assert.match(page, /Je vous rappelle dans 15 minutes/)
+  assert.match(page, /c&#39;est Plomberie Martin/)
+})
+
+test('deux touchers de suite : on ne félicite pas deux fois, mais on laisse renvoyer', () => {
+  const page = pageResultatPromesse(reponsePromesse('inchange'), { ...ENVOI, deja: true })
+  assert.match(page, /Vous venez de le dire/)
+  assert.match(page, /renvoyer/)
+  assert.ok(page.includes('sms:+33612345678'), 'le lien d’envoi a disparu')
+})
+
+test('UN NUMÉRO ILLISIBLE DONNE UNE VOIE DE REPLI, PAS UN BOUTON MORT', () => {
+  // Même principe que le bouton « Composer » des Réglages : on n'affiche
+  // jamais un bouton qui n'enverrait rien.
+  const page = pageResultatPromesse(reponsePromesse('ok'), {
+    ...ENVOI,
+    lien: null,
+    numero: 'je rappelle ce soir',
+  })
+  assert.ok(!page.includes('class="bouton"'), 'un bouton mort est affiché')
+  assert.match(page, /je rappelle ce soir/)
+  assert.match(page, /Je vous rappelle dans 15 minutes/)
+})
+
+test('un échec de promesse retombe sur l’écran commun, qui ne révèle rien', () => {
+  const page = pageResultatPromesse(reponsePromesse('refuse'), null)
+  assert.match(page, /Ce lien n’est plus valable/)
+  assert.ok(!page.includes('sms:'), 'un lien d’envoi traîne sur un écran d’échec')
+})
+
+test('et il ne parle pas de trente jours quand il s’agit de deux', () => {
+  const page = pageResultatPromesse(reponsePromesse('expire'), null)
+  assert.ok(!page.includes('trente jours'), page)
+  assert.match(page, /deux jours/)
 })
 
 test('les pages restent minuscules', () => {
