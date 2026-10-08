@@ -203,7 +203,9 @@ export function pageResultatPromesse(reponse: Reponse, envoi: Envoi | null): str
       ? `<p>Nous n’avons pas pu lire son numéro. Le voici tel qu’il nous est arrivé :
 <strong>${h(envoi.numero)}</strong></p>`
       : `<a class="bouton" href="${h(envoi.lien)}">Envoyer à mon client</a>
-<p class="pied">Le message partira de votre numéro, et votre client pourra vous répondre.</p>`
+<p class="pied">Le message partira de votre numéro, et votre client pourra vous répondre.</p>
+<p class="pied">Si rien ne s’ouvre, c’est que vous êtes sur un ordinateur : recopiez le
+message ci-dessus et envoyez-le depuis votre téléphone au <strong>${h(envoi.numero)}</strong>.</p>`
 
   return document(
     titre,

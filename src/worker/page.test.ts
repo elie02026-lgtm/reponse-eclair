@@ -160,6 +160,22 @@ test('deux touchers de suite : on ne félicite pas deux fois, mais on laisse ren
   assert.ok(page.includes('sms:+33612345678'), 'le lien d’envoi a disparu')
 })
 
+test('SUR UN ORDINATEUR, LE BOUTON NE FAIT RIEN — ET LA PAGE LE DIT', () => {
+  // MESURÉ LE 8 OCTOBRE 2026, sur l'écran d'Elie. Un lien `sms:` n'a aucun
+  // gestionnaire sur un PC : il ne se passe rien. La page, elle, affirmait
+  // « votre messagerie s'ouvre » — et l'artisan repartait en croyant son
+  // client prévenu. C'est la panne muette que ce projet s'interdit.
+  //
+  // On ne peut pas détecter le téléphone : cette page n'a AUCUN JavaScript,
+  // et c'est ce qui la fait tenir dans deux kilo-octets. On ne devine donc
+  // pas — on écrit les deux cas, et l'artisan reconnaît le sien.
+  const page = pageResultatPromesse(reponsePromesse('ok'), ENVOI)
+  assert.match(page, /Si rien ne s’ouvre/)
+  assert.match(page, /ordinateur/)
+  // Et le numéro doit être là en clair, pour qu'il puisse recopier.
+  assert.ok(page.includes(ENVOI.numero), 'le numéro à recopier n’est pas affiché')
+})
+
 test('UN NUMÉRO ILLISIBLE DONNE UNE VOIE DE REPLI, PAS UN BOUTON MORT', () => {
   // Même principe que le bouton « Composer » des Réglages : on n'affiche
   // jamais un bouton qui n'enverrait rien.
