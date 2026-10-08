@@ -127,6 +127,68 @@ numéro Twilio requis, et le message part de son numéro — son client peut
 répondre. Le jour où un numéro sera acheté, le Worker pourra envoyer
 lui-même, et ce sera un toucher au lieu de deux.
 
+### LE 8 OCTOBRE, LA PROMESSE A TOURNÉ DE BOUT EN BOUT
+
+Mesuré sur l'horloge de Paris, demande 67 :
+
+| | |
+|---|---|
+| 14 h 30 min 37 | la demande arrive — **aucune description tapée** |
+| | l'eau coule : oui · arrivée coupée : non |
+| 14 h 30 min 44 | l'alerte dans la boîte — objet **« Urgent — fuite non maitrisee »** |
+| 14 h 31 min 02 | gravité **3**, 250 €, écrites en base — 25 s après l'arrivée |
+| 14 h 32 min 28 | **« 15 min » touché → promesse enregistrée** |
+| **1 min 51** | **et le logiciel n'a jamais été ouvert** |
+
+Les **cinq jetons** de l'e-mail ont été comparés un à un à ce que Postgres
+recalcule depuis `cle_action` : identiques. Trois implémentations de SHA-256 —
+TypeScript dans le Worker, recopie par Make, PL/pgSQL dans la base — qui
+s'accordent sur cinq valeurs.
+
+Et l'objet dit « Urgent » alors que le client n'a rien écrit : c'est déduit de
+ses réponses à boutons, sans le modèle.
+
+### LES TROIS PANNES DE CE JOUR-LÀ, ET CE QU'ELLES ONT APPRIS
+
+Entre le collage du gabarit et cette mesure, il a fallu quatre essais. Trois
+causes empilées, dont la dernière était la plus bête :
+
+1. **Collage dupliqué.** L'objet contenait l'expression deux fois. D'où la
+   règle : `Ctrl+A`, `Suppr`, PUIS `Ctrl+V`.
+2. **L'éditeur de Make abîme les chiffres entre guillemets.** `= "3"` est
+   devenu `= """")3""""`, deux fois de suite, au même endroit — alors que
+   `"oui"`, `"Urgent"` et `"|"` passaient intacts. **Écrire `= 3`, sans
+   guillemets.**
+3. **`or()` n'existe pas dans Make.** Fonction inventée. Message exact :
+   `Failed to map 'subject': Function 'if' finished with error! Function 'or'
+   not found!`
+
+**Un module `google-email` qui échoue sur son objet fait tomber tout ce qui le
+suit dans sa branche** — ici le module 10, qui écrit la gravité. Le symptôme
+(gravité vide) était à trois modules de sa cause.
+
+**OÙ LIRE L'ERREUR :** pas dans l'API. `executions_get-detail` ne rend que
+`{"status":"WARNING"}`. Le texte exact est dans **l'e-mail que Make envoie** —
+chercher `from:make.com` dans la boîte. C'est la seule source.
+
+**Signature à reconnaître :** *sept opérations au lieu de huit, statut 2*.
+Un module de la route 1 a échoué ; croiser avec la boîte mail pour savoir
+lequel est passé.
+
+### CE QUE L'ÉCRAN D'ELIE A RÉVÉLÉ, ET QU'AUCUN TEST N'AURAIT TROUVÉ
+
+Il a touché « Envoyer à mon client » **depuis Chrome sur son PC**. Rien ne
+s'est passé — comportement normal d'un lien `sms:` hors téléphone. Mais la
+page affirmait « votre messagerie s'ouvre », donc il repartait en croyant son
+client prévenu, alors qu'en base tout allait bien.
+
+La panne muette dans sa forme la plus traître : **l'enregistrement réussit,
+c'est le message qui ne part pas.** La page écrit désormais les deux cas et
+donne le numéro à recopier. On ne peut pas détecter le téléphone : cette page
+n'a aucun JavaScript, et c'est ce qui la fait tenir en deux kilo-octets.
+
+**Vérifié ensuite sur un vrai téléphone : la messagerie s'ouvre, pré-remplie.**
+
 ### LE DÉFAUT QUE CE MÊME TEST A RÉVÉLÉ, DEUX HEURES PLUS TÔT
 
 À 9 h 49, la même demande — sans description — est sortie en **gravité 1,
