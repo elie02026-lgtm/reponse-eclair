@@ -54,9 +54,22 @@ export const QUESTIONS = [
     texte: 'Avez-vous pu couper l’arrivée d’eau ?',
     choix: OUI_NON_PEUTETRE,
   },
+  // DEUX QUESTIONS DEPUIS LE 9 OCTOBRE 2026, et c'était une seule avant.
+  //
+  // « Avez-vous encore du chauffage ET de l'eau chaude ? » mélangeait deux
+  // pannes qui n'ont pas la même gravité : plus d'eau chaude est gênant,
+  // plus de chauffage en janvier est dangereux. Un « non » ne permettait pas
+  // de les distinguer, et le plancher de `lib/tri.ts` ne pouvait donc pas
+  // monter au-dessus de 2 — il y est écrit noir sur blanc depuis le
+  // 7 octobre. Séparées, elles peuvent chacune dire ce qu'elles valent.
   {
-    nom: 'chauffage_eau_chaude',
-    texte: 'Avez-vous encore du chauffage et de l’eau chaude ?',
+    nom: 'chauffage',
+    texte: 'Avez-vous du chauffage ?',
+    choix: OUI_NON,
+  },
+  {
+    nom: 'eau_chaude',
+    texte: 'Avez-vous de l’eau chaude ?',
     choix: OUI_NON,
   },
 ] as const
@@ -70,7 +83,8 @@ export type Reponses = Record<NomQuestion, Reponse | null>
 export const AUCUNE_REPONSE: Reponses = {
   eau_coule: null,
   arrivee_coupee: null,
-  chauffage_eau_chaude: null,
+  chauffage: null,
+  eau_chaude: null,
 }
 
 /** Vrai dès qu'une seule question a été touchée. C'est ce qui rend la
@@ -127,7 +141,12 @@ export function conseils(reponses: Reponses, metier: string): Conseil[] {
   // PLUS DE CHAUFFAGE OU D'EAU CHAUDE : prise en charge, sans aucune
   // consigne technique. Une chaudière ne se manipule pas sur instruction
   // d'une page web.
-  if (reponses.chauffage_eau_chaude === 'non') {
+  //
+  // Les deux questions sont séparées depuis le 9 octobre, mais le CONSEIL
+  // reste le même : dans les deux cas on dit « c'est noté, n'y touchez pas ».
+  // Ce qui diffère entre elles, c'est la GRAVITÉ — et ça se joue dans
+  // `lib/tri.ts`, pas ici.
+  if (reponses.chauffage === 'non' || reponses.eau_chaude === 'non') {
     liste.push(consignes.sansChauffage)
   }
 

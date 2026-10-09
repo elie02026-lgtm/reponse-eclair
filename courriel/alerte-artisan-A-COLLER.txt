@@ -37,7 +37,8 @@
                         padding:10px 12px;font-size:14px;color:#334155;line-height:1.6;">
               L’eau coule : <strong>{{ifempty(2.eau_coule; "non renseigné")}}</strong><br>
               Arrivée d’eau coupée : <strong>{{ifempty(2.arrivee_coupee; "non renseigné")}}</strong><br>
-              Chauffage et eau chaude : <strong>{{ifempty(2.chauffage_eau_chaude; "non renseigné")}}</strong>
+              Chauffage : <strong>{{ifempty(2.chauffage; "non renseigné")}}</strong><br>
+              Eau chaude : <strong>{{ifempty(2.eau_chaude; "non renseigné")}}</strong>
             </div>
           </td>
         </tr>

@@ -144,7 +144,8 @@ export default function Formulaire() {
           // endroits : il n'y a rien à traduire, donc rien à se tromper.
           eau_coule: reponses.eau_coule ?? '',
           arrivee_coupee: reponses.arrivee_coupee ?? '',
-          chauffage_eau_chaude: reponses.chauffage_eau_chaude ?? '',
+          chauffage: reponses.chauffage ?? '',
+          eau_chaude: reponses.eau_chaude ?? '',
         }),
       })
       if (!reponse.ok) throw new Error(String(reponse.status))

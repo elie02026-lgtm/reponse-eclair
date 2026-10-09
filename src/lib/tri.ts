@@ -80,28 +80,54 @@ export function plancherReponses(d: Demande): number | null {
     return coupee ? 2 : 3
   }
 
-  // PLUS DE CHAUFFAGE OU PLUS D'EAU CHAUDE : 2, et pas davantage.
+  // PLUS DE CHAUFFAGE : 3 EN PÉRIODE FROIDE, 2 LE RESTE DE L'ANNÉE.
   //
-  // J'avais d'abord écrit 3 d'octobre à mars, en me disant qu'une semaine
-  // sans chauffage en janvier est un danger. Les tests de la page de
-  // démonstration l'ont refusé, et ils avaient raison :
+  // Ce plancher était plat à 2 jusqu'au 9 octobre 2026, et le commentaire
+  // d'alors disait pourquoi : « Avez-vous encore du chauffage ET de l'eau
+  // chaude ? » mélangeait une panne gênante et une panne dangereuse, donc le
+  // bouton ne pouvait pas justifier une gravité 3. Il finissait par « le jour
+  // où l'on séparera la question en deux, ce plancher pourra redevenir
+  // saisonnier ». Les deux questions sont séparées (migration 0021) : il le
+  // redevient, et pour le seul chauffage.
   //
-  //   LA QUESTION MÉLANGE DEUX CHOSES. « Avez-vous encore du chauffage ET
-  //   de l'eau chaude ? » — un « non » peut vouloir dire « plus d'eau
-  //   chaude », qui est gênant, ou « plus de chauffage en janvier », qui
-  //   est dangereux. Le bouton ne permet pas de les distinguer, donc il ne
-  //   peut pas justifier une gravité 3.
+  // LA DATE VIENT DE LA DEMANDE, PAS DE L'HORLOGE. `recue_le` est le moment
+  // où le client a écrit ; `now()` serait le moment où quelqu'un regarde
+  // l'écran. Avec `now()`, une demande de janvier relue en juillet
+  // changerait de gravité toute seule — et cette fonction cesserait d'être
+  // pure, donc testable.
+  if (d.chauffage === 'non') return estPeriodeFroide(d.recue_le) ? 3 : 2
+
+  // PLUS D'EAU CHAUDE : 2, toute l'année. C'est gênant, ce n'est pas un
+  // danger, et aucune saison n'y change rien.
+  if (d.eau_chaude === 'non') return 2
+
+  // L'ANCIENNE QUESTION FUSIONNÉE, le temps que Make soit mis à jour.
   //
-  // Un plancher ne doit affirmer que ce que les boutons PROUVENT. Ici ils
-  // prouvent une panne gênante : c'est 2. Le modèle, lui, lit la
-  // description et peut monter à 3 s'il y voit « plus aucun chauffage » —
-  // et le plancher ne l'en empêche pas, puisqu'il ne baisse jamais rien.
-  //
-  // Le jour où l'on séparera la question en deux, ce plancher pourra
-  // redevenir saisonnier. Pas avant.
+  // Entre la migration 0021 et la modification du module 5, les demandes
+  // arrivent encore avec `chauffage_eau_chaude` renseignée et les deux
+  // nouvelles colonnes vides. On continue donc de la lire, à 2 — la valeur
+  // prudente, celle que le bouton fusionné prouvait. À retirer avec la
+  // migration 0022, quand la colonne disparaîtra.
   if (d.chauffage_eau_chaude === 'non') return 2
 
   return null
+}
+
+/**
+ * Octobre à mars inclus, à l'heure de Paris.
+ *
+ * `Intl` et non `getMonth()` : l'appareil de l'artisan peut être réglé sur
+ * un autre fuseau, et une demande du 1ᵉʳ octobre à 00 h 30 ne doit pas être
+ * lue comme une demande de septembre parce que le téléphone est à Londres.
+ * Même précaution que `dateCourte` dans `CarteDemande.tsx`.
+ */
+export function estPeriodeFroide(recueLe: string): boolean {
+  const mois = Number(
+    new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', month: 'numeric' }).format(
+      new Date(recueLe),
+    ),
+  )
+  return mois >= 10 || mois <= 3
 }
 
 /**

@@ -26,7 +26,8 @@ Les variables Make ont été remplacées par des repères :
 | `{{2.urgence_dite}}` | `{urgence_dite}` |
 | `{{2.eau_coule}}` | `{eau_coule}` |
 | `{{2.arrivee_coupee}}` | `{arrivee_coupee}` |
-| `{{2.chauffage_eau_chaude}}` | `{chauffage_eau_chaude}` |
+| `{{2.chauffage}}` | `{chauffage}` |
+| `{{2.eau_chaude}}` | `{eau_chaude}` |
 | `{{formatDate(now; "D MMMM YYYY")}}` | `{date}` |
 
 **Un seul écart, et il faut le savoir :** Make stocke ce texte avec des fins
@@ -37,7 +38,7 @@ octet ».
 **Ce que le prompt dit encore, et qu'Elie avait envisagé de changer :**
 
 ```
-chauffage et eau chaude = non  ->  gravite 3 d'octobre à mars, sinon gravite 2
+chauffage = non  ->  gravite 3 d'octobre à mars, sinon gravite 2
 ```
 
 Cette ligne est TOUJOURS dans Make. Le plancher du code
@@ -62,7 +63,8 @@ Forme attendue par `evaluer.mjs` — un tableau d'objets :
     "urgence_dite": "Oui, c'est urgent",
     "eau_coule": "oui",
     "arrivee_coupee": "non",
-    "chauffage_eau_chaude": "",
+    "chauffage": "oui",
+    "eau_chaude": "",
     "date": "2026-01-15",
     "gravites_attendues": [3]
   }

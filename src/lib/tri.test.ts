@@ -31,6 +31,8 @@ function d(champs: Partial<Demande> & { id: number }): Demande {
     promesse_le: null,
     eau_coule: null,
     arrivee_coupee: null,
+    chauffage: null,
+    eau_chaude: null,
     chauffage_eau_chaude: null,
     ...champs,
   }
@@ -121,24 +123,73 @@ test('l’eau coule mais c’est coupé : plancher 2, pas 3', () => {
   assert.equal(graviteEffective(x), 2)
 })
 
-test('PLUS DE CHAUFFAGE OU D’EAU CHAUDE : 2, JAMAIS 3', () => {
-  // La question mélange deux choses : « plus d'eau chaude » est gênant,
-  // « plus de chauffage en janvier » est dangereux. Le bouton ne permet pas
-  // de les distinguer, donc il ne peut pas justifier une gravité 3. Un
-  // plancher n'affirme que ce que les boutons PROUVENT.
-  //
-  // Première version de ce plancher : 3 d'octobre à mars. Les tests de la
-  // page de démonstration l'ont refusée, et ils avaient raison — la panne
-  // d'eau chaude de Karim serait passée devant la fuite de Marc.
-  const x = d({ id: 1, gravite: 1, chauffage_eau_chaude: 'non' })
+// ─────────────────────────────────────────────────────────────────────────
+// LE CHAUFFAGE ET L'EAU CHAUDE, SÉPARÉS (9 octobre 2026)
+// ─────────────────────────────────────────────────────────────────────────
+// Une seule question les mélangeait, et le plancher était donc plat à 2 :
+// un « non » pouvait vouloir dire « plus d'eau chaude », qui est gênant, ou
+// « plus de chauffage en janvier », qui est dangereux. Séparées, chacune
+// peut dire ce qu'elle vaut.
+
+const JANVIER = '2026-01-15T10:00:00.000Z'
+const JUILLET = '2026-07-15T10:00:00.000Z'
+
+test('PLUS DE CHAUFFAGE EN JANVIER : 3', () => {
+  const x = d({ id: 1, gravite: 1, chauffage: 'non', recue_le: JANVIER })
+  assert.equal(plancherReponses(x), 3)
+  assert.equal(graviteEffective(x), 3)
+})
+
+test('plus de chauffage en juillet : 2 — c’est gênant, pas dangereux', () => {
+  const x = d({ id: 1, gravite: 1, chauffage: 'non', recue_le: JUILLET })
   assert.equal(plancherReponses(x), 2)
-  assert.equal(graviteEffective(x), 2)
+})
+
+test('PLUS D’EAU CHAUDE : 2 TOUTE L’ANNÉE, même en janvier', () => {
+  // C'est là que la séparation se voit. Avant, ce cas et le précédent
+  // étaient le même bouton et ne pouvaient donc valoir que 2 tous les deux.
+  assert.equal(plancherReponses(d({ id: 1, eau_chaude: 'non', recue_le: JANVIER })), 2)
+  assert.equal(plancherReponses(d({ id: 2, eau_chaude: 'non', recue_le: JUILLET })), 2)
+})
+
+test('LA SAISON VIENT DE LA DEMANDE, PAS DE L’HORLOGE', () => {
+  // `recue_le` est le moment où le client a écrit. Avec `now()`, une demande
+  // de janvier relue en juillet changerait de gravité toute seule — et cette
+  // fonction cesserait d'être pure, donc testable.
+  const janvier = d({ id: 1, chauffage: 'non', recue_le: JANVIER })
+  const juillet = d({ id: 2, chauffage: 'non', recue_le: JUILLET })
+  assert.notEqual(plancherReponses(janvier), plancherReponses(juillet))
+})
+
+test('les bornes de la période froide : octobre et mars en sont, avril non', () => {
+  const p = (iso: string) => plancherReponses(d({ id: 1, chauffage: 'non', recue_le: iso }))
+  assert.equal(p('2026-10-01T08:00:00.000Z'), 3, '1er octobre')
+  assert.equal(p('2026-03-31T08:00:00.000Z'), 3, '31 mars')
+  assert.equal(p('2026-04-01T08:00:00.000Z'), 2, '1er avril')
+  assert.equal(p('2026-09-30T08:00:00.000Z'), 2, '30 septembre')
+})
+
+test('la saison se lit à l’heure de PARIS, pas à celle de l’appareil', () => {
+  // 30 septembre 23 h 30 UTC, c'est le 1er octobre à Paris. Avec
+  // `getMonth()` sur un appareil réglé à Londres, ce serait septembre.
+  assert.equal(
+    plancherReponses(d({ id: 1, chauffage: 'non', recue_le: '2026-09-30T23:30:00.000Z' })),
+    3,
+  )
+})
+
+test('L’ANCIENNE QUESTION FUSIONNÉE VAUT ENCORE 2, le temps que Make suive', () => {
+  // Entre la migration 0021 et la modification du module 5, les demandes
+  // arrivent avec l'ancienne colonne renseignée et les deux neuves vides.
+  // On continue de la lire, à la valeur prudente. À retirer avec la 0022.
+  const x = d({ id: 1, gravite: 1, chauffage_eau_chaude: 'non', recue_le: JANVIER })
+  assert.equal(plancherReponses(x), 2)
 })
 
 test('le modèle, lui, peut monter à 3 — le plancher ne l’en empêche pas', () => {
   // S'il lit « plus aucun chauffage depuis trois jours » dans la
-  // description en janvier, il a vu ce que le bouton ne dit pas.
-  const x = d({ id: 1, gravite: 3, chauffage_eau_chaude: 'non' })
+  // description, il a vu ce que le bouton ne dit pas.
+  const x = d({ id: 1, gravite: 3, eau_chaude: 'non', recue_le: JUILLET })
   assert.equal(graviteEffective(x), 3)
 })
 

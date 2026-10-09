@@ -92,7 +92,7 @@ test('un champ qui n’est pas une chaîne est traité comme vide', () => {
 test('les champs inconnus ne ressortent jamais', () => {
   const d = accepte({ artisan_id: 'autre', statut: 'signe', gravite: 3, montant_signe: -1 })
   assert.deepEqual(Object.keys(d).sort(), [
-    'arrivee_coupee', 'besoin', 'chauffage_eau_chaude', 'code', 'eau_coule',
+    'arrivee_coupee', 'besoin', 'chauffage', 'code', 'eau_chaude', 'eau_coule',
     'email', 'lieu', 'prenom', 'telephone', 'urgence_dite',
   ])
 })
@@ -175,11 +175,12 @@ test('UNE SEULE RÉPONSE REND LA DESCRIPTION FACULTATIVE', () => {
   assert.equal(d.eau_coule, 'oui')
 })
 
-test('chacune des trois suffit à elle seule', () => {
+test('chacune des QUATRE suffit à elle seule', () => {
   for (const [champ, valeur] of [
     ['eau_coule', 'non'],
     ['arrivee_coupee', 'je-ne-sais-pas'],
-    ['chauffage_eau_chaude', 'non'],
+    ['chauffage', 'non'],
+    ['eau_chaude', 'non'],
   ]) {
     assert.equal(accepte({ besoin: '', [champ!]: valeur }).besoin, '', champ)
   }
@@ -191,15 +192,17 @@ test('les réponses non données arrivent à null, pas à vide', () => {
   const d = accepte()
   assert.equal(d.eau_coule, null)
   assert.equal(d.arrivee_coupee, null)
-  assert.equal(d.chauffage_eau_chaude, null)
+  assert.equal(d.chauffage, null)
+  assert.equal(d.eau_chaude, null)
 })
 
 test('une réponse inventée est refusée, champ par champ', () => {
   refuse({ eau_coule: 'peut-etre' }, 'eau_coule')
   refuse({ eau_coule: 'OUI' }, 'eau_coule')
   refuse({ arrivee_coupee: 'bien sûr' }, 'arrivee_coupee')
-  // « je ne sais pas » n'est pas proposé pour la troisième question.
-  refuse({ chauffage_eau_chaude: 'je-ne-sais-pas' }, 'chauffage_eau_chaude')
+  // « je ne sais pas » n'est proposé pour aucune des deux dernières.
+  refuse({ chauffage: 'je-ne-sais-pas' }, 'chauffage')
+  refuse({ eau_chaude: 'je-ne-sais-pas' }, 'eau_chaude')
 })
 
 test('une réponse qui n’est pas une chaîne est traitée comme absente', () => {

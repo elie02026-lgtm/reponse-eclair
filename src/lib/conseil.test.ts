@@ -76,16 +76,31 @@ test('sans aucune réponse, on ne conseille rien', () => {
 // ─────────────────────────────────────────────────────────────────────────
 
 test('plus de chauffage : prise en charge, et AUCUNE consigne technique', () => {
-  const liste = conseils(r({ chauffage_eau_chaude: 'non' }), 'plombier')
+  const liste = conseils(r({ chauffage: 'non' }), 'plombier')
   assert.equal(liste.length, 1)
   assert.equal(liste[0]?.agir, false, 'ce bloc ne doit pas demander d’agir')
   // Une chaudière ne se manipule pas sur instruction d'une page web.
   assert.match(liste[0]!.texte, /N’ouvrez pas la chaudière/)
 })
 
+test('plus d’eau chaude donne LE MÊME conseil que plus de chauffage', () => {
+  // Les deux questions sont séparées depuis le 9 octobre, mais ce qu'on DIT
+  // au client ne change pas : « c'est noté, n'y touchez pas ». Ce qui diffère,
+  // c'est la gravité — et ça se joue dans `lib/tri.ts`, pas ici.
+  const froid = conseils(r({ chauffage: 'non' }), 'plombier')
+  const tiede = conseils(r({ eau_chaude: 'non' }), 'plombier')
+  assert.deepEqual(tiede, froid)
+})
+
+test('les deux à la fois ne donnent qu’UN bloc, pas deux', () => {
+  // Sinon le client lirait deux fois la même phrase, et croirait qu'on lui
+  // parle de deux problèmes différents.
+  assert.equal(conseils(r({ chauffage: 'non', eau_chaude: 'non' }), 'plombier').length, 1)
+})
+
 test('les deux situations à la fois donnent les deux blocs, la fuite d’abord', () => {
   const liste = titres()(
-    r({ eau_coule: 'oui', arrivee_coupee: 'non', chauffage_eau_chaude: 'non' }),
+    r({ eau_coule: 'oui', arrivee_coupee: 'non', chauffage: 'non' }),
   )
   assert.equal(liste.length, 2)
   assert.match(liste[0]!, /coupez l’arrivée d’eau/i)
@@ -135,25 +150,33 @@ test('l’accusé nomme l’entreprise et ne promet pas de rappel', () => {
 // LES QUESTIONS ELLES-MÊMES
 // ─────────────────────────────────────────────────────────────────────────
 
-test('les trois questions existent, dans l’ordre du cahier', () => {
+test('LES QUATRE QUESTIONS, DANS L’ORDRE', () => {
+  // Elles étaient trois jusqu'au 9 octobre : la dernière mélangeait le
+  // chauffage et l'eau chaude, deux pannes de gravité différente.
+  //
+  // L'ORDRE N'EST PAS DÉCORATIF. « L'eau coule » vient en premier parce que
+  // c'est la seule qui déclenche un geste utile : si le client abandonne
+  // après la première, on a déjà ce qui compte le plus.
   assert.deepEqual(
     QUESTIONS.map((q) => q.nom),
-    ['eau_coule', 'arrivee_coupee', 'chauffage_eau_chaude'],
+    ['eau_coule', 'arrivee_coupee', 'chauffage', 'eau_chaude'],
   )
 })
 
-test('la troisième question n’a que deux réponses', () => {
-  // « Avez-vous encore du chauffage et de l'eau chaude ? » — on le sait ou
-  // on ne le sait pas, il n'y a pas de doute possible.
+test('le chauffage et l’eau chaude n’ont que deux réponses', () => {
+  // On a du chauffage ou on n'en a pas : il n'y a pas de doute possible.
+  // « L'eau coule » et « avez-vous coupé », si — d'où leur troisième choix.
   assert.deepEqual(QUESTIONS[2].choix, ['oui', 'non'])
+  assert.deepEqual(QUESTIONS[3].choix, ['oui', 'non'])
   assert.deepEqual(QUESTIONS[0].choix, ['oui', 'non', 'je-ne-sais-pas'])
 })
 
 test('une réponse inventée est refusée', () => {
   assert.ok(reponseValide('eau_coule', 'oui'))
   assert.ok(reponseValide('eau_coule', 'je-ne-sais-pas'))
-  // « je ne sais pas » n'existe pas pour la troisième question.
-  assert.equal(reponseValide('chauffage_eau_chaude', 'je-ne-sais-pas'), false)
+  // « je ne sais pas » n'existe pour aucune des deux dernières.
+  assert.equal(reponseValide('chauffage', 'je-ne-sais-pas'), false)
+  assert.equal(reponseValide('eau_chaude', 'je-ne-sais-pas'), false)
   for (const mauvais of ['OUI', 'peut-etre', '', null, 42, {}]) {
     assert.equal(reponseValide('eau_coule', mauvais), false, String(mauvais))
   }

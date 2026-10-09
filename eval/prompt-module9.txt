@@ -3,10 +3,11 @@ Tu classes une demande reçue par un artisan du bâtiment, métier : plombier-ch
 Ce que le client a écrit : {besoin}
 Ce que le client a coché : {urgence_dite}
 
-Ses réponses aux trois questions (vide = il n'a pas répondu) :
+Ses réponses aux quatre questions (vide = il n'a pas répondu) :
 - L'eau coule-t-elle en ce moment ? {eau_coule}
 - A-t-il pu couper l'arrivée d'eau ? {arrivee_coupee}
-- A-t-il encore du chauffage et de l'eau chaude ? {chauffage_eau_chaude}
+- A-t-il du chauffage ? {chauffage}
+- A-t-il de l'eau chaude ? {eau_chaude}
 
 Date du jour : {date}
 
@@ -18,10 +19,11 @@ répondu qu'aux boutons. Dans ce cas, juge UNIQUEMENT sur ses réponses.
 N'écris JAMAIS « contenu manquant » et ne rends JAMAIS un panier de 0 tant
 qu'au moins une réponse est présente.
 
-Ces trois règles passent avant tout le reste :
+Ces quatre règles passent avant tout le reste :
 - l'eau coule = oui ET arrivée coupée = non  ->  gravite 3, motif « fuite non maitrisee »
 - l'eau coule = oui ET arrivée coupée = oui  ->  gravite 2, motif « fuite maitrisee »
-- chauffage et eau chaude = non              ->  gravite 3 d'octobre à mars, sinon gravite 2
+- chauffage = non                            ->  gravite 3 d'octobre à mars, sinon gravite 2
+- eau chaude = non                           ->  gravite 2, toute l'annee
 
 Sinon, juge sur la description :
 gravite 3 si elle indique un dégât en cours ou un danger : fuite qui coule, dégât des eaux, odeur de gaz, plus aucun chauffage en période froide, panne électrique totale.

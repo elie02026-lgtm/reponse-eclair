@@ -148,6 +148,8 @@ function fausse(champs: Partial<Demande> & { id: number }): Demande {
     promesse_le: null,
     eau_coule: null,
     arrivee_coupee: null,
+    chauffage: null,
+    eau_chaude: null,
     chauffage_eau_chaude: null,
     ...champs,
   }

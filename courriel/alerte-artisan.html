@@ -27,7 +27,8 @@
                            plus rien : ce champ peut être VIDE, et c'est un fait.
     {{REP_EAU}}          2.eau_coule           ← nouveau
     {{REP_COUPEE}}       2.arrivee_coupee      ← nouveau
-    {{REP_CHAUFFAGE}}    2.chauffage_eau_chaude ← nouveau
+    {{REP_CHAUFFAGE}}    2.chauffage           ← séparé en deux par la 0021
+    {{REP_EAU_CHAUDE}}   2.eau_chaude
     {{GRAVITE}}          la gravité estimée, 0 à 3
     {{MOTIF}}            le motif en deux ou trois mots
 
@@ -98,7 +99,8 @@
                         padding:10px 12px;font-size:14px;color:#334155;line-height:1.6;">
               L’eau coule : <strong>{{REP_EAU}}</strong><br>
               Arrivée d’eau coupée : <strong>{{REP_COUPEE}}</strong><br>
-              Chauffage et eau chaude : <strong>{{REP_CHAUFFAGE}}</strong>
+              Chauffage : <strong>{{REP_CHAUFFAGE}}</strong><br>
+              Eau chaude : <strong>{{REP_EAU_CHAUDE}}</strong>
             </div>
           </td>
         </tr>

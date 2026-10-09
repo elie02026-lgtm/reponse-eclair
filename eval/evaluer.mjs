@@ -78,7 +78,8 @@ function remplir(gabarit, cas) {
     .replaceAll('{urgence_dite}', cas.urgence_dite ?? '')
     .replaceAll('{eau_coule}', cas.eau_coule ?? '')
     .replaceAll('{arrivee_coupee}', cas.arrivee_coupee ?? '')
-    .replaceAll('{chauffage_eau_chaude}', cas.chauffage_eau_chaude ?? '')
+    .replaceAll('{chauffage}', cas.chauffage ?? '')
+    .replaceAll('{eau_chaude}', cas.eau_chaude ?? '')
     .replaceAll('{date}', dateEnFrancais(cas.date))
 }
 
@@ -170,7 +171,7 @@ function verifierCas(cas, index) {
         `(${URGENCES.map((u) => `« ${u} »`).join(' ou ')})`,
     )
   }
-  for (const champ of ['eau_coule', 'arrivee_coupee', 'chauffage_eau_chaude']) {
+  for (const champ of ['eau_coule', 'arrivee_coupee', 'chauffage', 'eau_chaude']) {
     const v = cas[champ] ?? ''
     if (!REPONSES_BOUTON.includes(v)) alertes.push(`${ou} : ${champ} = « ${v} » inattendu`)
   }

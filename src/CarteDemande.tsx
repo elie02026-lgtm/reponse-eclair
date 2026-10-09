@@ -152,12 +152,16 @@ export default function CarteDemande({
           fait rapporté par le client, pas une estimation de machine.
           On n'affiche que ce qui a été répondu : une ligne vide dirait
           quelque chose de faux. */}
-      {(d.eau_coule || d.arrivee_coupee || d.chauffage_eau_chaude) && (
+      {(d.eau_coule || d.arrivee_coupee || d.chauffage || d.eau_chaude || d.chauffage_eau_chaude) && (
         <ul className="mt-3 space-y-1 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200">
           {d.eau_coule && <li>L’eau coule en ce moment : {LIBELLE_REPONSE[d.eau_coule]}</li>}
           {d.arrivee_coupee && (
             <li>Arrivée d’eau coupée : {LIBELLE_REPONSE[d.arrivee_coupee]}</li>
           )}
+          {d.chauffage && <li>Chauffage : {LIBELLE_REPONSE[d.chauffage]}</li>}
+          {d.eau_chaude && <li>Eau chaude : {LIBELLE_REPONSE[d.eau_chaude]}</li>}
+          {/* L'ancienne question fusionnée, pour les demandes arrivées avant
+              que Make ne soit mis à jour. Disparaîtra avec la migration 0022. */}
           {d.chauffage_eau_chaude && (
             <li>Chauffage et eau chaude : {LIBELLE_REPONSE[d.chauffage_eau_chaude]}</li>
           )}

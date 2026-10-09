@@ -151,6 +151,14 @@ export type Demande = {
   // à corriger. La base le lui interdit colonne par colonne.
   eau_coule: string | null
   arrivee_coupee: string | null
+  // Séparées par la migration 0021 : « plus d'eau chaude » est gênant,
+  // « plus de chauffage en janvier » est dangereux. Une seule question ne
+  // permettait pas de les distinguer.
+  chauffage: string | null
+  eau_chaude: string | null
+  /** @deprecated L'ancienne question fusionnée. Nulle sur toutes les lignes,
+   *  encore postée par Make le temps que le module 5 soit mis à jour.
+   *  Disparaîtra avec la migration 0022. */
   chauffage_eau_chaude: string | null
 
   // ─── Migration 0018 : la promesse de rappel (phase 5 bis) ───

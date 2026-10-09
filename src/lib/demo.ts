@@ -85,6 +85,8 @@ export const DEMANDES_DEMO: Demande[] = [
     promesse_le: null,
     eau_coule: null,
     arrivee_coupee: null,
+    chauffage: null,
+    eau_chaude: null,
     chauffage_eau_chaude: null,
   },
   {
@@ -113,7 +115,13 @@ export const DEMANDES_DEMO: Demande[] = [
     promesse_le: null,
     eau_coule: 'non',
     arrivee_coupee: null,
-    chauffage_eau_chaude: 'non',
+    // KARIM N'A PLUS D'EAU CHAUDE, ET IL A LE CHAUFFAGE.
+    // La question était fusionnée jusqu'au 9 octobre, et son « non » était
+    // donc ambigu. Séparée, sa panne est nommée : plancher 2, toute l'année.
+    // Il reste derrière la fuite de Marc, et la démonstration garde son ordre.
+    chauffage: 'oui',
+    eau_chaude: 'non',
+    chauffage_eau_chaude: null,
   },
   {
     id: 3,
@@ -141,6 +149,8 @@ export const DEMANDES_DEMO: Demande[] = [
     promesse_le: null,
     eau_coule: null,
     arrivee_coupee: null,
+    chauffage: null,
+    eau_chaude: null,
     chauffage_eau_chaude: null,
   },
   {
@@ -172,6 +182,8 @@ export const DEMANDES_DEMO: Demande[] = [
     // voir que le classement ne sort pas d'un chapeau.
     eau_coule: 'oui',
     arrivee_coupee: 'non',
+    chauffage: null,
+    eau_chaude: null,
     chauffage_eau_chaude: null,
   },
 ]

@@ -47,7 +47,8 @@ export type DemandeValide = {
   // pas touché la question — ce qui est permis : aucune n'est obligatoire.
   eau_coule: string | null
   arrivee_coupee: string | null
-  chauffage_eau_chaude: string | null
+  chauffage: string | null
+  eau_chaude: string | null
   urgence_dite: string
 }
 
@@ -182,7 +183,8 @@ export function validerDemande(brut: unknown): Verdict {
       besoin,
       eau_coule: reponses.eau_coule ?? null,
       arrivee_coupee: reponses.arrivee_coupee ?? null,
-      chauffage_eau_chaude: reponses.chauffage_eau_chaude ?? null,
+      chauffage: reponses.chauffage ?? null,
+      eau_chaude: reponses.eau_chaude ?? null,
       urgence_dite: urgence,
     },
   }
