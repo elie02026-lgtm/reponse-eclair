@@ -21,9 +21,8 @@ prompt que le module 9.
 Ce fichier a d'abord été **relevé** dans le blueprint du scénario **6318986**,
 module **9**, le 7 octobre 2026 — pas recopié de mémoire. Il a ensuite été
 modifié le 9 octobre, quand la question « chauffage et eau chaude » a été
-séparée en deux. **Il n'est donc plus identique à ce que contient Make :**
-Make porte encore la version à trois questions, jusqu'à ce que le module 9
-soit recollé.
+séparée en deux, puis **recollé dans Make le 9 octobre à 14 h 16**. Les deux
+sont de nouveau identiques — relu dans le blueprint, pas supposé.
 
 Les repères, et la variable Make correspondante :
 
@@ -37,10 +36,11 @@ Les repères, et la variable Make correspondante :
 | `{{2.eau_chaude}}` | `{eau_chaude}` |
 | `{{formatDate(now; "D MMMM YYYY")}}` | `{date}` |
 
-**Un seul écart, et il faut le savoir :** Make stocke ce texte avec des fins
-de ligne Windows (`\r\n`), ce fichier les a en `\n`. Aucun modèle n'en voit la
-différence, mais « mot pour mot » veut dire « mot pour mot », pas « octet pour
-octet ».
+**Les fins de ligne :** Make a longtemps stocké ce texte avec des fins de
+ligne Windows (`\r\n`). Depuis le collage du 9 octobre il porte des `\n`,
+comme ce fichier. Aucun modèle n'en voit la différence — mais « mot pour
+mot » veut dire « mot pour mot », pas « octet pour octet », et c'est le genre
+d'écart qui fait douter d'une mesure six mois plus tard.
 
 ### Le prompt et le code disent maintenant la même chose
 
