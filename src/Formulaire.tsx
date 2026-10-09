@@ -246,7 +246,7 @@ export default function Formulaire() {
 
       <form onSubmit={envoyer} className="mt-5 space-y-5">
         {/* ─────────────────────────────────────────────────────────────
-            TROIS QUESTIONS, TROIS TOUCHERS, AUCUN CLAVIER (phase 5.1)
+            QUATRE QUESTIONS, QUATRE TOUCHERS, AUCUN CLAVIER (phase 5.1)
             ─────────────────────────────────────────────────────────────
             Elles passent AVANT la description, et ce n'est pas un détail :
             le client tape debout, avec une fuite à ses pieds. S'il
