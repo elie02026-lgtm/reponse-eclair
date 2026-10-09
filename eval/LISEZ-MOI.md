@@ -7,18 +7,25 @@ aucune demande réelle ne contient de contradiction.
 Cette évaluation appelle Gemini **directement**, hors Make, avec le même
 prompt que le module 9.
 
-## Les trois fichiers
+## Les quatre fichiers
 
 | Fichier | Rôle |
 |---|---|
 | `prompt-module9.txt` | **la source de vérité du prompt.** On modifie ici, puis on recopie dans Make. Jamais l'inverse. |
+| `prompt-module9-A-COLLER.txt` | le même, avec les variables Make (`{{2.besoin}}`…) au lieu des repères. **Généré, jamais modifié à la main.** C'est ce fichier qu'on colle dans le module 9. |
 | `cas.json` | les cas d'examen, écrits par Elie. **Absent pour l'instant.** |
 | `evaluer.mjs` | l'évaluateur. `node eval/evaluer.mjs` |
 
-## `prompt-module9.txt` — relevé dans Make, pas recopié de mémoire
+## `prompt-module9.txt` — l'état de ce fichier, et celui de Make
 
-Extrait du blueprint du scénario **6318986**, module **9**, le 7 octobre 2026.
-Les variables Make ont été remplacées par des repères :
+Ce fichier a d'abord été **relevé** dans le blueprint du scénario **6318986**,
+module **9**, le 7 octobre 2026 — pas recopié de mémoire. Il a ensuite été
+modifié le 9 octobre, quand la question « chauffage et eau chaude » a été
+séparée en deux. **Il n'est donc plus identique à ce que contient Make :**
+Make porte encore la version à trois questions, jusqu'à ce que le module 9
+soit recollé.
+
+Les repères, et la variable Make correspondante :
 
 | Dans Make | Ici |
 |---|---|
@@ -35,18 +42,18 @@ de ligne Windows (`\r\n`), ce fichier les a en `\n`. Aucun modèle n'en voit la
 différence, mais « mot pour mot » veut dire « mot pour mot », pas « octet pour
 octet ».
 
-**Ce que le prompt dit encore, et qu'Elie avait envisagé de changer :**
+### Le prompt et le code disent maintenant la même chose
 
 ```
-chauffage = non  ->  gravite 3 d'octobre à mars, sinon gravite 2
+chauffage  = non  ->  gravite 3 d'octobre à mars, sinon gravite 2
+eau chaude = non  ->  gravite 2, toute l'année
 ```
 
-Cette ligne est TOUJOURS dans Make. Le plancher du code
-(`src/lib/tri.ts`), lui, a été ramené à **2 au maximum** pour ce cas — parce
-que la question mélange « plus d'eau chaude », qui est gênant, et « plus de
-chauffage en janvier », qui est dangereux. Le prompt et le code ne disent donc
-pas la même chose, et l'évaluation va mesurer **le prompt tel qu'il est**, pas
-tel qu'on voudrait qu'il soit. C'est le seul ordre utile.
+C'est aussi ce que fait le plancher du code (`src/lib/tri.ts`). Tant que le
+module 9 n'est pas recollé, **l'évaluation mesure un prompt que Make n'a pas
+encore** — et c'est voulu : on mesure le texte qu'on a décidé, puis on le
+colle une fois qu'il tient.
+
 
 ## `cas.json` — ce que le fichier doit contenir
 

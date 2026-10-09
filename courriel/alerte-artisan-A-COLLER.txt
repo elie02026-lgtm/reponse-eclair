@@ -26,7 +26,7 @@
           </td>
         </tr>
 
-        <!-- LES TROIS RÉPONSES À BOUTONS (phase 5).
+        <!-- LES QUATRE RÉPONSES À BOUTONS (phase 5, séparées depuis le 9 octobre).
              Depuis que la description est facultative, elles sont parfois la
              SEULE chose que le client ait dite. « L'eau coule et ce n'est pas
              coupé » est ce qui décide si l'artisan part maintenant ou dans
