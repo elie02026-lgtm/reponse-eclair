@@ -1,8 +1,16 @@
 # Mesurer le classificateur
 
 Le différenciateur du produit, c'est que la gravité estimée **contredit** la
-case « urgent » cochée par le client. Il n'a jamais été mesuré : en base,
-aucune demande réelle ne contient de contradiction.
+case « urgent » cochée par le client.
+
+**Il arrive, et c'est mesuré.** Sur les douze demandes classées de la base, au
+9 octobre 2026 : **quatre fois** le client a coché « urgence » et la machine a
+rendu moins de 3 — **trois fois elle a rendu 1**, sur des devis de salle de
+bain. Et **deux fois** l'inverse : rien de coché, gravité 3.
+
+Ce qui n'a jamais été mesuré, c'est s'il a RAISON de contredire. Douze lignes
+sans réponse attendue ne le disent pas : personne n'a écrit, à l'avance, ce
+que chacune aurait dû donner. C'est l'objet de `cas.json`.
 
 Cette évaluation appelle Gemini **directement**, hors Make, avec le même
 prompt que le module 9.
