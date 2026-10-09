@@ -108,16 +108,37 @@ Forme attendue par `evaluer.mjs` — un tableau d'objets :
 ### Les libellés de `urgence_dite`
 
 Ce sont ceux que le Worker accepte, et aucun autre — relevés dans
-`src/lib/demandeRecue.ts` :
+`src/lib/demandeRecue.ts`. `node eval/evaluer.mjs --libelles` les affiche,
+sans clé et sans réseau :
 
-<!-- RELEVÉ AUTOMATIQUEMENT : voir `node eval/evaluer.mjs --libelles` -->
+```
+« Oui, c’est urgent »
+« Non, ça peut attendre »
+« »                        (il n’a pas répondu)
+```
+
+**L’apostrophe est COURBE (U+2019), pas droite.** Le code la porte ainsi ; une
+apostrophe droite déclenche un avertissement, parce que le formulaire
+n’aurait jamais pu produire ce libellé — le cas porterait alors sur une
+situation impossible.
 
 ## Lancer
 
 ```bash
-export GEMINI_API_KEY=...      # jamais dans un fichier du dépôt
-node eval/evaluer.mjs
+node eval/evaluer.mjs --libelles   # les valeurs acceptées. Ni clé ni réseau.
+node eval/evaluer.mjs --verifier   # relit cas.json. Ni clé ni réseau.
+
+export GEMINI_API_KEY=...          # jamais dans un fichier du dépôt
+node eval/evaluer.mjs              # la mesure, 3 essais par cas
 ```
+
+**Écrivez les cas, puis `--verifier`, autant de fois qu’il faut.** On ne dépense
+un appel que le jour où le fichier tient debout.
+
+`--verifier` ne juge pas les cas : il les DÉCRIT. Il compte notamment ceux qui
+portent la contradiction — le client coche urgent, on attend moins de 3 —
+parce que c’est elle, le produit. Un examen où elle n’apparaît que deux fois sur
+vingt mesure un classificateur quelconque, pas Réponse Éclair.
 
 Le rapport est écrit dans `eval/resultats-AAAA-MM-JJ.md`, **committé** : il ne
 contient aucun secret.

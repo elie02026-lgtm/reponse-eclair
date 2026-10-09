@@ -349,33 +349,54 @@ function rapport(cas, resultats, alertes) {
 
 const pct = (n, d) => (d === 0 ? '—' : `${Math.round((n / d) * 100)} %`)
 
-async function main() {
-  const cle = process.env.GEMINI_API_KEY
-  if (!cle) {
-    console.error(
-      'GEMINI_API_KEY manque.\n\n' +
-        'Exportez-la dans votre terminal — jamais dans un fichier du dépôt :\n' +
-        '  export GEMINI_API_KEY=...        (ou $env:GEMINI_API_KEY = "..." sous PowerShell)',
-    )
-    process.exit(1)
-  }
+const AIDE = `
+  node eval/evaluer.mjs              lance la mesure (demande GEMINI_API_KEY)
+  node eval/evaluer.mjs --verifier   relit eval/cas.json SANS appeler Gemini
+  node eval/evaluer.mjs --libelles   affiche les valeurs acceptees dans un cas
+  node eval/evaluer.mjs --aide       ce message
+`
 
-  const gabarit = await readFile(CHEMIN_PROMPT, 'utf8')
+// LES DEUX DRAPEAUX NE DEMANDENT NI CLE NI RESEAU, ET C'EST TOUT LEUR INTERET.
+// On ecrit les cas d'abord, on les verifie autant de fois qu'on veut, et on ne
+// depense un appel que le jour ou le fichier tient debout. Le LISEZ-MOI
+// promettait `--libelles` depuis le 8 octobre ; il n'avait jamais ete ecrit.
+function afficherLibelles() {
+  console.log('')
+  console.log('urgence_dite — les libelles EXACTS que le Worker accepte :')
+  for (const u of URGENCES) console.log(`  « ${u} »`)
+  console.log('  « »                      (il n a pas repondu)')
+  console.log('')
+  console.log("ATTENTION a l apostrophe : c est une apostrophe COURBE, U+2019.")
+  console.log('Une apostrophe droite declenchera un avertissement.')
+  console.log('')
+  console.log('eau_coule, arrivee_coupee, chauffage, eau_chaude :')
+  console.log(`  ${REPONSES_BOUTON.map((r) => (r === '' ? '« »' : r)).join('  ·  ')}`)
+  console.log('')
+  console.log('date : AAAA-MM-JJ. Elle compte — le prompt a une regle saisonniere.')
+  console.log('gravites_attendues : une liste de 0 a 3, par exemple [3] ou [1, 2].')
+  console.log('')
+}
 
+/** Lit et controle `cas.json`. Sort du programme si le fichier est
+ *  inexploitable ; rend les cas et les avertissements sinon. */
+async function chargerCas() {
   let cas
   try {
     cas = JSON.parse(await readFile(CHEMIN_CAS, 'utf8'))
   } catch (e) {
     console.error(
-      `eval/cas.json est illisible ou absent (${e.code ?? e.message}).\n\n` +
-        'LES CAS SONT ÉCRITS PAR ELIE, PAS PAR CELUI QUI CODE : un examen\n' +
-        'choisi par l’examiné ne mesure rien. La forme attendue est décrite\n' +
-        'dans eval/LISEZ-MOI.md.',
+      [
+        `eval/cas.json est illisible ou absent (${e.code ?? e.message}).`,
+        '',
+        'LES CAS SONT ECRITS PAR ELIE, PAS PAR CELUI QUI CODE : un examen',
+        'choisi par l examine ne mesure rien. La forme attendue est decrite',
+        'dans eval/LISEZ-MOI.md, et `--libelles` donne les valeurs acceptees.',
+      ].join('\n'),
     )
     process.exit(1)
   }
   if (!Array.isArray(cas) || cas.length === 0) {
-    console.error('eval/cas.json doit être un tableau non vide.')
+    console.error('eval/cas.json doit etre un tableau non vide.')
     process.exit(1)
   }
 
@@ -383,9 +404,88 @@ async function main() {
   const vus = new Set()
   cas.forEach((c, i) => {
     alertes.push(...verifierCas(c, i))
-    if (vus.has(c.id)) throw new Error(`l'identifiant « ${c.id} » apparaît deux fois`)
+    if (vus.has(c.id)) throw new Error(`l identifiant « ${c.id} » apparait deux fois`)
     vus.add(c.id)
   })
+  return { cas, alertes }
+}
+
+// CE QUE `--verifier` COMPTE, ET POURQUOI CES COMPTES-LA.
+//
+// Il ne juge pas les cas — c'est Elie qui les ecrit. Il DECRIT l'examen, pour
+// qu'on voie d'un coup d'oeil ce qu'il mesure vraiment. Le differenciateur du
+// produit, c'est la CONTRADICTION : le client coche urgent, la machine dit
+// non. Un examen ou cette situation n'apparait que deux fois sur vingt ne
+// mesure pas Reponse Eclair, il mesure un classificateur quelconque.
+function decrire(cas) {
+  const max = (c) => Math.max(...c.gravites_attendues)
+  const vide = (v) => !v || v === ''
+  const boutons = ['eau_coule', 'arrivee_coupee', 'chauffage', 'eau_chaude']
+  return [
+    ['cas au total', cas.length],
+    ['le client coche urgent, on attend moins de 3',
+      cas.filter((c) => c.urgence_dite === URGENCES[0] && max(c) < 3).length],
+    ['le client ne crie pas, on attend 3',
+      cas.filter((c) => c.urgence_dite !== URGENCES[0] && max(c) === 3).length],
+    ['attendus a 3 (les erreurs dangereuses)', cas.filter((c) => max(c) === 3).length],
+    ['description vide : les boutons seuls parlent', cas.filter((c) => vide(c.besoin)).length],
+    ['aucun bouton : la description seule parle',
+      cas.filter((c) => boutons.every((b) => vide(c[b]))).length],
+    ['ni description ni bouton',
+      cas.filter((c) => vide(c.besoin) && boutons.every((b) => vide(c[b]))).length],
+    ['acceptent plusieurs gravites', cas.filter((c) => c.gravites_attendues.length > 1).length],
+  ]
+}
+
+async function main() {
+  const args = process.argv.slice(2)
+
+  if (args.includes('--aide') || args.includes('-h')) {
+    console.log(AIDE)
+    return
+  }
+
+  if (args.includes('--libelles')) {
+    afficherLibelles()
+    return
+  }
+
+  if (args.includes('--verifier')) {
+    const { cas, alertes } = await chargerCas()
+    for (const a of alertes) console.warn(`⚠ ${a}`)
+    console.log('')
+    for (const [quoi, combien] of decrire(cas)) {
+      console.log(`${String(combien).padStart(4)}  ${quoi}`)
+    }
+    console.log('')
+    console.log(
+      alertes.length === 0
+        ? 'Aucun avertissement. Le fichier tient debout.'
+        : `${alertes.length} avertissement(s) ci-dessus — a toi de juger : un cas`
+          + ' volontairement bizarre est peut-etre exactement ce que tu veux mesurer.',
+    )
+    console.log('')
+    console.log('Rien n a ete envoye a Gemini. Aucune cle n a ete lue.')
+    return
+  }
+
+  const cle = process.env.GEMINI_API_KEY
+  if (!cle) {
+    console.error(
+      [
+        'GEMINI_API_KEY manque.',
+        '',
+        'Exportez-la dans votre terminal — jamais dans un fichier du depot :',
+        '  export GEMINI_API_KEY=...        (ou $env:GEMINI_API_KEY = "..." sous PowerShell)',
+        '',
+        'Pour relire vos cas sans cle :  node eval/evaluer.mjs --verifier',
+      ].join('\n'),
+    )
+    process.exit(1)
+  }
+
+  const gabarit = await readFile(CHEMIN_PROMPT, 'utf8')
+  const { cas, alertes } = await chargerCas()
   for (const a of alertes) console.warn(`⚠ ${a}`)
 
   const resultats = []
