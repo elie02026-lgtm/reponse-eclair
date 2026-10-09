@@ -209,6 +209,77 @@ test('L’ARTISAN L’EMPORTE SUR LE PLANCHER', () => {
   assert.equal(graviteEffective(x), 1)
 })
 
+// ───────────────────────────────────────────────────────────────────────────
+// QUAND PLUSIEURS RÈGLES MORDENT, C'EST LA PLUS GRAVE QUI COMMANDE
+//
+// Ces cinq tests viennent d'un défaut mesuré sur la demande 71, le 9 octobre
+// 2026 : « l'eau coule oui », « coupée oui », « chauffage non ». La fonction
+// était une cascade de `return` ; elle rendait 2 et ne regardait jamais le
+// chauffage. Le deuxième test est le plus parlant : SANS la fuite, elle
+// rendait 3. Ajouter une panne faisait baisser le plancher.
+// ───────────────────────────────────────────────────────────────────────────
+
+test('FUITE MAÎTRISÉE + PLUS DE CHAUFFAGE EN JANVIER : 3, pas 2', () => {
+  const x = d({
+    id: 1,
+    eau_coule: 'oui',
+    arrivee_coupee: 'oui',
+    chauffage: 'non',
+    recue_le: JANVIER,
+  })
+  assert.equal(plancherReponses(x), 3)
+})
+
+test('AJOUTER UNE PANNE NE DOIT JAMAIS FAIRE BAISSER LE PLANCHER', () => {
+  const sansFuite = d({ id: 1, chauffage: 'non', recue_le: JANVIER })
+  const avecFuiteMaitrisee = d({
+    id: 2,
+    chauffage: 'non',
+    recue_le: JANVIER,
+    eau_coule: 'oui',
+    arrivee_coupee: 'oui',
+  })
+  const a = plancherReponses(sansFuite)!
+  const b = plancherReponses(avecFuiteMaitrisee)!
+  assert.ok(b >= a, `ajouter une fuite a fait passer le plancher de ${a} à ${b}`)
+})
+
+test('en juillet, les deux mêmes règles donnent 2 : la saison compte encore', () => {
+  const x = d({
+    id: 1,
+    eau_coule: 'oui',
+    arrivee_coupee: 'oui',
+    chauffage: 'non',
+    recue_le: JUILLET,
+  })
+  assert.equal(plancherReponses(x), 2)
+})
+
+test('une fuite NON maîtrisée reste à 3 même si tout le reste va bien', () => {
+  const x = d({
+    id: 1,
+    eau_coule: 'oui',
+    arrivee_coupee: 'non',
+    chauffage: 'oui',
+    eau_chaude: 'oui',
+    recue_le: JUILLET,
+  })
+  assert.equal(plancherReponses(x), 3)
+})
+
+test('les quatre pannes à la fois : 3, et une seule fois', () => {
+  const x = d({
+    id: 1,
+    eau_coule: 'oui',
+    arrivee_coupee: 'non',
+    chauffage: 'non',
+    eau_chaude: 'non',
+    chauffage_eau_chaude: 'non',
+    recue_le: JANVIER,
+  })
+  assert.equal(plancherReponses(x), 3)
+})
+
 test('sans réponse à boutons, il n’y a pas de plancher', () => {
   assert.equal(plancherReponses(d({ id: 1, gravite: 2 })), null)
   assert.equal(graviteEffective(d({ id: 1, gravite: 2 })), 2)

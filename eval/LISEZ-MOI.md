@@ -20,9 +20,10 @@ prompt que le module 9.
 
 Ce fichier a d'abord été **relevé** dans le blueprint du scénario **6318986**,
 module **9**, le 7 octobre 2026 — pas recopié de mémoire. Il a ensuite été
-modifié le 9 octobre, quand la question « chauffage et eau chaude » a été
-séparée en deux, puis **recollé dans Make le 9 octobre à 14 h 16**. Les deux
-sont de nouveau identiques — relu dans le blueprint, pas supposé.
+modifié deux fois le 9 octobre : les quatre questions, recollées dans Make à
+14 h 16 ; puis **la phrase de départage**, qui n'y est PAS encore. Ce fichier
+est donc en avance d'une ligne sur Make, jusqu'au prochain collage du
+module 9.
 
 Les repères, et la variable Make correspondante :
 
@@ -41,6 +42,20 @@ ligne Windows (`\r\n`). Depuis le collage du 9 octobre il porte des `\n`,
 comme ce fichier. Aucun modèle n'en voit la différence — mais « mot pour
 mot » veut dire « mot pour mot », pas « octet pour octet », et c'est le genre
 d'écart qui fait douter d'une mesure six mois plus tard.
+
+### Quand deux règles mordent, la plus grave gagne
+
+Le 9 octobre, la demande 71 a mordu sur deux règles à la fois — fuite
+maîtrisée (2) et plus de chauffage en octobre (3). Le prompt ne disait pas
+laquelle l'emporte ; le modèle a retenu 3, et rien ne garantissait qu'il
+recommence. Le code, lui, retenait 2 : sa cascade sortait sur la première
+règle. **Les deux ont été corrigés le même jour**, et le prompt porte
+désormais :
+
+```
+Si PLUSIEURS de ces règles s'appliquent, retiens la gravité la PLUS ÉLEVÉE,
+et le motif de la règle qui l'a donnée.
+```
 
 ### Le prompt et le code disent maintenant la même chose
 

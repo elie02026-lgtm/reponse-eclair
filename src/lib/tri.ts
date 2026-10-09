@@ -53,6 +53,9 @@ import type { Demande } from '../types.ts'
  * ─────────────────────────────────────────────────────────────────────────
  * CE QU'IL NE FAIT PAS
  * ─────────────────────────────────────────────────────────────────────────
+ * Il prend LA PLUS GRAVE des règles qui s'appliquent, jamais la première
+ * rencontrée — voir le commentaire dans le corps, qui porte la mesure.
+ *
  * Il ne BAISSE jamais rien. Si le modèle a vu dans la description quelque
  * chose de plus grave que ce que les boutons disent, c'est le modèle qui
  * gagne. Un plancher qui plafonnerait serait une censure.
@@ -69,15 +72,32 @@ import type { Demande } from '../types.ts'
  * que sa propre variable.
  */
 export function plancherReponses(d: Demande): number | null {
-  // L'EAU QUI COULE PASSE AVANT TOUT. Une fuite non maîtrisée abîme un
-  // logement à chaque minute ; c'est le seul cas où l'on sait, sans lire
-  // une ligne de description, qu'il faut y aller.
+  // ON LES COLLECTE TOUTES, PUIS ON PREND LA PLUS GRAVE.
+  //
+  // Jusqu'au 9 octobre 2026, cette fonction était une CASCADE : le premier
+  // `if` qui mordait sortait par un `return`, et les suivants n'étaient
+  // jamais lus. Ce n'était donc pas un plancher, c'était un premier-arrivé.
+  //
+  // Le défaut a été mesuré sur une demande réelle, la 71 : « l'eau coule
+  // oui », « arrivée coupée oui », « chauffage non », un 9 octobre. Deux
+  // règles mordaient — fuite maîtrisée à 2, chauffage en période froide à 3
+  // — et la cascade rendait 2. Retirer la fuite rendait 3. AJOUTER UNE
+  // PANNE FAISAIT BAISSER LE PLANCHER : absurde, et dangereux le jour où le
+  // modèle se trompe, c'est-à-dire le seul jour où ce plancher sert.
+  //
+  // Un plancher est un minimum garanti. Quand plusieurs faits rapportés le
+  // justifient, c'est le plus grave qui commande.
+  const planchers: number[] = []
+
+  // L'EAU QUI COULE. Une fuite non maîtrisée abîme un logement à chaque
+  // minute ; c'est le cas où l'on sait, sans lire une ligne de description,
+  // qu'il faut y aller.
   if (d.eau_coule === 'oui') {
     // « Je ne sais pas » compte comme « non » : celui qui ignore s'il a
     // coupé n'a, en pratique, pas coupé. Même arbitrage que pour le conseil
     // affiché au client (`lib/conseil.ts`).
     const coupee = d.arrivee_coupee === 'oui'
-    return coupee ? 2 : 3
+    planchers.push(coupee ? 2 : 3)
   }
 
   // PLUS DE CHAUFFAGE : 3 EN PÉRIODE FROIDE, 2 LE RESTE DE L'ANNÉE.
@@ -85,32 +105,34 @@ export function plancherReponses(d: Demande): number | null {
   // Ce plancher était plat à 2 jusqu'au 9 octobre 2026, et le commentaire
   // d'alors disait pourquoi : « Avez-vous encore du chauffage ET de l'eau
   // chaude ? » mélangeait une panne gênante et une panne dangereuse, donc le
-  // bouton ne pouvait pas justifier une gravité 3. Il finissait par « le jour
-  // où l'on séparera la question en deux, ce plancher pourra redevenir
-  // saisonnier ». Les deux questions sont séparées (migration 0021) : il le
-  // redevient, et pour le seul chauffage.
+  // bouton ne pouvait pas justifier une gravité 3. Les deux questions sont
+  // séparées (migration 0021) : il redevient saisonnier, pour le seul
+  // chauffage.
   //
   // LA DATE VIENT DE LA DEMANDE, PAS DE L'HORLOGE. `recue_le` est le moment
   // où le client a écrit ; `now()` serait le moment où quelqu'un regarde
   // l'écran. Avec `now()`, une demande de janvier relue en juillet
   // changerait de gravité toute seule — et cette fonction cesserait d'être
   // pure, donc testable.
-  if (d.chauffage === 'non') return estPeriodeFroide(d.recue_le) ? 3 : 2
+  if (d.chauffage === 'non') planchers.push(estPeriodeFroide(d.recue_le) ? 3 : 2)
 
   // PLUS D'EAU CHAUDE : 2, toute l'année. C'est gênant, ce n'est pas un
   // danger, et aucune saison n'y change rien.
-  if (d.eau_chaude === 'non') return 2
+  if (d.eau_chaude === 'non') planchers.push(2)
 
-  // L'ANCIENNE QUESTION FUSIONNÉE, le temps que Make soit mis à jour.
+  // L'ANCIENNE QUESTION FUSIONNÉE, le temps que la colonne disparaisse.
   //
-  // Entre la migration 0021 et la modification du module 5, les demandes
-  // arrivent encore avec `chauffage_eau_chaude` renseignée et les deux
-  // nouvelles colonnes vides. On continue donc de la lire, à 2 — la valeur
-  // prudente, celle que le bouton fusionné prouvait. À retirer avec la
-  // migration 0022, quand la colonne disparaîtra.
-  if (d.chauffage_eau_chaude === 'non') return 2
+  // Make n'écrit plus `chauffage_eau_chaude` depuis le 9 octobre, mais les
+  // lignes d'avant la portent encore. On continue de la lire, à 2 — la
+  // valeur prudente, la seule que le bouton fusionné prouvait. À retirer
+  // avec la migration 0022.
+  if (d.chauffage_eau_chaude === 'non') planchers.push(2)
 
-  return null
+  // Pas une seule réponse exploitable : pas de plancher. `null` et non 0 —
+  // 0 serait un plancher, et il écraserait une gravité 1 légitime.
+  if (planchers.length === 0) return null
+
+  return Math.max(...planchers)
 }
 
 /**
