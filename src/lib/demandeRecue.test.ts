@@ -148,7 +148,11 @@ test('l’e-mail est FACULTATIF, mais pas n’importe quoi', () => {
 test('l’urgence est une liste blanche, pas du texte libre', () => {
   for (const u of URGENCES) assert.equal(accepte({ urgence_dite: u }).urgence_dite, u)
   refuse({ urgence_dite: 'URGENT !!!' }, 'urgence_dite')
-  refuse({ urgence_dite: '' }, 'urgence_dite')
+
+  // VIDE EST ACCEPTÉ DEPUIS LE 9 OCTOBRE : le formulaire ne présélectionne
+  // plus rien, et un client a le droit de ne pas répondre. Ce qui reste
+  // interdit, c'est une valeur hors liste.
+  assert.equal(accepte({ urgence_dite: '' }).urgence_dite, '')
   // Piège d'apostrophe : le libellé porte une apostrophe COURBE.
   refuse({ urgence_dite: "Oui, c'est urgent" }, 'urgence_dite')
 })

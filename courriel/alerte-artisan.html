@@ -22,7 +22,9 @@
     {{TEL_AFFICHE}}      2.telephone           (ou une version espacée)
     {{LIEU}}             2.lieu
     {{BESOIN}}           2.besoin
-    {{URGENCE_DITE}}     2.urgence_dite
+    {{URGENCE_DITE}}     ifempty(2.urgence_dite; "il n'a pas répondu")
+                         ← depuis le 9 octobre, le formulaire ne présélectionne
+                           plus rien : ce champ peut être VIDE, et c'est un fait.
     {{REP_EAU}}          2.eau_coule           ← nouveau
     {{REP_COUPEE}}       2.arrivee_coupee      ← nouveau
     {{REP_CHAUFFAGE}}    2.chauffage_eau_chaude ← nouveau

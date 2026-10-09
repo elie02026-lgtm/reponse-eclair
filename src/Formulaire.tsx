@@ -84,7 +84,14 @@ export default function Formulaire() {
   const [email, setEmail] = useState('')
   const [lieu, setLieu] = useState('')
   const [besoin, setBesoin] = useState('')
-  const [urgence, setUrgence] = useState<string>(URGENCES[0])
+  // AUCUNE PRÉSÉLECTION, et c'est le cœur du produit qui en dépend.
+  //
+  // Cette case était cochée d'avance sur « Oui, c'est urgent ». Un client qui
+  // ne touchait pas la question envoyait donc, en son nom, une réponse qu'il
+  // n'avait pas donnée — et L'ÉCART entre ce qu'il a coché et la gravité
+  // estimée, qui EST le produit, comparait alors une estimation à un réglage
+  // d'usine. Vide veut dire « il n'a pas répondu », et c'est un fait.
+  const [urgence, setUrgence] = useState<string>('')
   // AUCUNE DEMANDE PERDUE. L'échec ne remplace plus l'écran : le formulaire
   // reste affiché, tout ce que la personne a tapé est encore là, et elle
   // n'a qu'à toucher « Envoyer » une seconde fois. Un écran de panne qui
@@ -227,8 +234,13 @@ export default function Formulaire() {
     <Cadre>
       <p className="text-sm font-medium text-slate-500">Vous avez appelé</p>
       <h1 className="text-xl font-bold text-slate-900">{artisan?.entreprise}</h1>
+      {/* L'ENTREPRISE EST NOMMÉE, pas désignée par « il ». Le client vient de
+          composer un numéro et tombe sur une page web : « il » ne renvoie à
+          personne qu'il connaisse. Le repli ne dit jamais « il » non plus —
+          tant que le nom n'est pas chargé, on parle de « l'artisan ». */}
       <p className="mt-2 text-slate-600">
-        Il n’a pas pu décrocher. Dites-lui ce qu’il vous arrive, il vous rappelle.
+        {artisan?.entreprise ?? 'L’artisan'} n’a pas pu décrocher. Dites-lui ce qu’il vous
+        arrive, il vous rappelle.
       </p>
 
       <form onSubmit={envoyer} className="mt-5 space-y-5">

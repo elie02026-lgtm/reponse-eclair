@@ -136,8 +136,21 @@ export function validerDemande(brut: unknown): Verdict {
   }
 
   // ── urgence ─────────────────────────────────────────────────────────
+  //
+  // FACULTATIVE DEPUIS LE 9 OCTOBRE 2026, et c'est une correction
+  // d'intégrité, pas un assouplissement.
+  //
+  // Le formulaire présélectionnait « Oui, c'est urgent ». Un client qui ne
+  // touchait pas cette question voyait donc partir, en son nom, une réponse
+  // qu'il n'avait pas donnée. Or L'ÉCART entre « ce que le client a coché »
+  // et la gravité estimée est le produit lui-même : si la case est cochée
+  // d'avance, cet écart ne mesure plus rien — il compare une estimation à un
+  // réglage par défaut.
+  //
+  // Vide est donc accepté, et veut dire « il n'a pas répondu ». Ce qui reste
+  // interdit : une valeur hors liste. Le champ garde sa liste blanche.
   const urgence = texte(source, 'urgence_dite')
-  if (!(URGENCES as readonly string[]).includes(urgence)) {
+  if (urgence !== '' && !(URGENCES as readonly string[]).includes(urgence)) {
     return invalide('urgence_dite', 'Répondez à la question « c’est urgent ? ».')
   }
 

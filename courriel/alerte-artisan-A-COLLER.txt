@@ -61,7 +61,7 @@
                   <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
                               padding:10px 12px;">
                     <div style="font-size:13px;font-weight:700;color:#334155;">Le client a coché</div>
-                    <div style="font-size:13px;color:#475569;">{{2.urgence_dite}}</div>
+                    <div style="font-size:13px;color:#475569;">{{ifempty(2.urgence_dite; "il n’a pas répondu")}}</div>
                   </div>
                 </td>
               </tr>
