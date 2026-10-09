@@ -20,10 +20,9 @@ prompt que le module 9.
 
 Ce fichier a d'abord été **relevé** dans le blueprint du scénario **6318986**,
 module **9**, le 7 octobre 2026 — pas recopié de mémoire. Il a ensuite été
-modifié deux fois le 9 octobre : les quatre questions, recollées dans Make à
-14 h 16 ; puis **la phrase de départage**, qui n'y est PAS encore. Ce fichier
-est donc en avance d'une ligne sur Make, jusqu'au prochain collage du
-module 9.
+modifié deux fois le 9 octobre, et **recollé dans Make les deux fois** : les
+quatre questions à 16 h 16, la phrase de départage à 17 h 15. Les deux sont
+identiques, relu dans le blueprint et non supposé.
 
 Les repères, et la variable Make correspondante :
 
