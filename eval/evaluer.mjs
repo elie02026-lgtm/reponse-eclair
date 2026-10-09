@@ -6,8 +6,14 @@
 // CE QUE CE SCRIPT MESURE, ET POURQUOI C'EST LE TEST LE PLUS IMPORTANT
 // ═════════════════════════════════════════════════════════════════════════
 // Le différenciateur du produit, c'est que la gravité estimée CONTREDIT la
-// case « urgent » cochée par le client. Il n'a jamais été mesuré : en base,
-// aucune demande réelle ne contient de contradiction.
+// case « urgent » cochée par le client. ELLE LE CONTREDIT POUR DE VRAI : sur
+// les douze demandes classées de la base, au 9 octobre 2026, quatre fois le
+// client a coché « urgence » et la machine a rendu moins de 3 — trois fois
+// elle a rendu 1. Deux fois l'inverse : rien de coché, gravité 3.
+//
+// Ce qui n'a jamais été mesuré, c'est si elle a RAISON. Aucune de ces douze
+// lignes ne porte de réponse attendue, écrite À L'AVANCE par quelqu'un qui ne
+// code pas. C'est tout l'objet de `cas.json`.
 //
 // Ici on appelle Gemini DIRECTEMENT, hors Make, avec le prompt du module 9 —
 // relevé dans le blueprint, pas recopié de mémoire. Make n'est pas dans la
